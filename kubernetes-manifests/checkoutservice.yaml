@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: checkoutservice
+          image: gcr.io/mattcary-hackathon/checkoutservice:1.0.0
           ports:
           - containerPort: 5050
           readinessProbe:

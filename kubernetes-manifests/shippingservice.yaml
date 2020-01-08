@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: shippingservice
+        image: gcr.io/mattcary-hackathon/shippingservice:1.0.0
         ports:
         - containerPort: 50051
         env:

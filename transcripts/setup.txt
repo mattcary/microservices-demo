@@ -1,0 +1,2444 @@
+/chromium/microservices-demo$ gcloud projects list
+
+PROJECT_ID          NAME                PROJECT_NUMBER
+mattcary-hackathon  mattcary-hackathon  69115284596
+/chromium/microservices-demo$ gcloud config set project mattcary-hackathon
+Updated property [core/project].
+/chromium/microservices-demo$ gcloud services enable container.googleapis.com
+/chromium/microservices-demo$ gcloud container clusters create hipster --enable-autoupgrade --enable-autoscaling --min-nodes=3 --max-nodes=10 --zone=us-central1-a
+WARNING: Currently VPC-native is not the default mode during cluster creation. In the future, this will become the default mode and can be disabled using `--no-enable-ip-alias` flag. Use `--[no-]enable-ip-alias` flag to suppress this warning.
+WARNING: Starting in 1.12, default node pools in new clusters will have their legacy Compute Engine instance metadata endpoints disabled by default. To create a cluster with legacy instance metadata endpoints disabled in the default node pool, run `clusters create` with the flag `--metadata disable-legacy-endpoints=true`.
+WARNING: Your Pod address range (`--cluster-ipv4-cidr`) can accommodate at most 1008 node(s). 
+This will enable the autorepair feature for nodes. Please see https://cloud.google.com/kubernetes-engine/docs/node-auto-repair for more information on node autorepairs.
+Creating cluster hipster in us-central1-a... Cluster is being health-checked (master is healthy)...done.
+Created [https://container.googleapis.com/v1/projects/mattcary-hackathon/zones/us-central1-a/clusters/hipster].
+To inspect the contents of your cluster, go to: https://console.cloud.google.com/kubernetes/workload_/gcloud/us-central1-a/hipster?project=mattcary-hackathon
+kubeconfig entry generated for hipster.
+NAME     LOCATION       MASTER_VERSION  MASTER_IP     MACHINE_TYPE   NODE_VERSION    NUM_NODES  STATUS
+hipster  us-central1-a  1.13.11-gke.14  34.66.165.13  n1-standard-1  1.13.11-gke.14  3          RUNNING
+/chromium/microservices-demo$ gcloud services enable containerregistry.googleapis.com
+/chromium/microservices-demo$ gcloud auth configure-docker -q
+gcloud credential helpers already registered correctly.
+/chromium/microservices-demo$ docker run busybox date
+Unable to find image 'busybox:latest' locally
+latest: Pulling from library/busybox
+
+Digest: sha256:edafc0a0fb057813850d1ba44014914ca02d671ae247107ca70c94db686e7de6
+Status: Downloaded newer image for busybox:latest
+Wed Jan  8 00:07:25 UTC 2020
+/chromium/microservices-demo$ cd src/
+/chromium/microservices-demo/src$ ls
+adservice    checkoutservice  emailservice  loadgenerator   productcatalogservice  shippingservice
+cartservice  currencyservice  frontend      paymentservice  recommendationservice
+/chromium/microservices-demo/src$ ls */Dockerfile
+adservice/Dockerfile        emailservice/Dockerfile    productcatalogservice/Dockerfile
+cartservice/Dockerfile      frontend/Dockerfile        recommendationservice/Dockerfile
+checkoutservice/Dockerfile  loadgenerator/Dockerfile   shippingservice/Dockerfile
+currencyservice/Dockerfile  paymentservice/Dockerfile
+/chromium/microservices-demo/src$ for df in */Dockerfile; do n=${df%/*}; echo $n; (cd $n; docker build -t $n .; docker tag $n gcr.io/mattcary-hackathon/${n}:1.0.0); done
+adservice
+Sending build context to Docker daemon  109.6kB
+Step 1/17 : FROM openjdk:8-slim as builder
+8-slim: Pulling from library/openjdk
+
+
+
+
+Digest: sha256:1026a91596ba99fd25e8eb4cae6db2851d421a225cd27104fd2ef51a003ab920
+Status: Downloaded newer image for openjdk:8-slim
+ ---> a0b0dea106dd
+Step 2/17 : WORKDIR /app
+ ---> Running in adeb419af0ea
+Removing intermediate container adeb419af0ea
+ ---> a7d356e49c06
+Step 3/17 : COPY ["build.gradle", "gradlew", "./"]
+ ---> b0701af9397c
+Step 4/17 : COPY gradle gradle
+ ---> 9aebefc10f1e
+Step 5/17 : RUN chmod +x gradlew
+ ---> Running in 999fc879262e
+Removing intermediate container 999fc879262e
+ ---> 1c94d7d46870
+Step 6/17 : RUN ./gradlew downloadRepos
+ ---> Running in b0b820768b95
+Downloading https://services.gradle.org/distributions/gradle-4.4-bin.zip
+........................................................................
+Unzipping /root/.gradle/wrapper/dists/gradle-4.4-bin/bgaq7vklkazwgxox0hdadxbvi/gradle-4.4-bin.zip to /root/.gradle/wrapper/dists/gradle-4.4-bin/bgaq7vklkazwgxox0hdadxbvi
+Set executable permissions for: /root/.gradle/wrapper/dists/gradle-4.4-bin/bgaq7vklkazwgxox0hdadxbvi/gradle-4.4/bin/gradle
+Starting a Gradle Daemon (subsequent builds will be faster)
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-gradle-plugin/0.8.3/protobuf-gradle-plugin-0.8.3.pom
+Download https://plugins.gradle.org/m2/gradle/plugin/com/github/sherter/google-java-format/google-java-format-gradle-plugin/0.7.1/google-java-format-gradle-plugin-0.7.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava/18.0/guava-18.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/gradle/osdetector-gradle-plugin/1.4.0/osdetector-gradle-plugin-1.4.0.pom
+Download https://repo.maven.apache.org/maven2/commons-lang/commons-lang/2.6/commons-lang-2.6.pom
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/18.0/guava-parent-18.0.pom
+Download https://repo.maven.apache.org/maven2/org/sonatype/oss/oss-parent/7/oss-parent-7.pom
+Download https://repo.maven.apache.org/maven2/org/apache/commons/commons-parent/17/commons-parent-17.pom
+Download https://repo.maven.apache.org/maven2/org/apache/apache/7/apache-7.pom
+Download https://repo.maven.apache.org/maven2/kr/motd/maven/os-maven-plugin/1.4.0.Final/os-maven-plugin-1.4.0.Final.pom
+Download https://repo.maven.apache.org/maven2/org/sonatype/oss/oss-parent/9/oss-parent-9.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-utils/3.0.17/plexus-utils-3.0.17.pom
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven-plugin-api/3.2.1/maven-plugin-api-3.2.1.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus/3.3.1/plexus-3.3.1.pom
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven/3.2.1/maven-3.2.1.pom
+Download https://repo.maven.apache.org/maven2/org/sonatype/spice/spice-parent/17/spice-parent-17.pom
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven-parent/23/maven-parent-23.pom
+Download https://repo.maven.apache.org/maven2/org/sonatype/forge/forge-parent/10/forge-parent-10.pom
+Download https://repo.maven.apache.org/maven2/org/apache/apache/13/apache-13.pom
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven-model/3.2.1/maven-model-3.2.1.pom
+Download https://repo.maven.apache.org/maven2/org/eclipse/sisu/org.eclipse.sisu.plexus/0.0.0.M5/org.eclipse.sisu.plexus-0.0.0.M5.pom
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven-artifact/3.2.1/maven-artifact-3.2.1.pom
+Download https://repo.maven.apache.org/maven2/org/eclipse/sisu/sisu-plexus/0.0.0.M5/sisu-plexus-0.0.0.M5.pom
+Download https://repo.maven.apache.org/maven2/javax/enterprise/cdi-api/1.0/cdi-api-1.0.pom
+Download https://repo.maven.apache.org/maven2/org/sonatype/sisu/sisu-guice/3.1.0/sisu-guice-3.1.0.pom
+Download https://repo.maven.apache.org/maven2/org/eclipse/sisu/org.eclipse.sisu.inject/0.0.0.M5/org.eclipse.sisu.inject-0.0.0.M5.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-classworlds/2.4/plexus-classworlds-2.4.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-component-annotations/1.5.5/plexus-component-annotations-1.5.5.pom
+Download https://repo.maven.apache.org/maven2/org/sonatype/sisu/inject/guice-parent/3.1.0/guice-parent-3.1.0.pom
+Download https://repo.maven.apache.org/maven2/org/eclipse/sisu/sisu-inject/0.0.0.M5/sisu-inject-0.0.0.M5.pom
+Download https://repo.maven.apache.org/maven2/org/jboss/weld/weld-api-parent/1.0/weld-api-parent-1.0.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-containers/1.5.5/plexus-containers-1.5.5.pom
+Download https://repo.maven.apache.org/maven2/org/jboss/weld/weld-api-bom/1.0/weld-api-bom-1.0.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus/2.0.7/plexus-2.0.7.pom
+Download https://repo.maven.apache.org/maven2/org/jboss/weld/weld-parent/6/weld-parent-6.pom
+Download https://repo.maven.apache.org/maven2/javax/annotation/jsr250-api/1.0/jsr250-api-1.0.pom
+Download https://repo.maven.apache.org/maven2/javax/inject/javax.inject/1/javax.inject-1.pom
+Download https://repo.maven.apache.org/maven2/aopalliance/aopalliance/1.0/aopalliance-1.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/gradle/osdetector-gradle-plugin/1.4.0/osdetector-gradle-plugin-1.4.0.jar
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven-plugin-api/3.2.1/maven-plugin-api-3.2.1.jar
+Download https://repo.maven.apache.org/maven2/org/eclipse/sisu/org.eclipse.sisu.plexus/0.0.0.M5/org.eclipse.sisu.plexus-0.0.0.M5.jar
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-gradle-plugin/0.8.3/protobuf-gradle-plugin-0.8.3.jar
+Download https://repo.maven.apache.org/maven2/kr/motd/maven/os-maven-plugin/1.4.0.Final/os-maven-plugin-1.4.0.Final.jar
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven-model/3.2.1/maven-model-3.2.1.jar
+Download https://repo.maven.apache.org/maven2/commons-lang/commons-lang/2.6/commons-lang-2.6.jar
+Download https://repo.maven.apache.org/maven2/org/apache/maven/maven-artifact/3.2.1/maven-artifact-3.2.1.jar
+Download https://repo.maven.apache.org/maven2/javax/enterprise/cdi-api/1.0/cdi-api-1.0.jar
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-utils/3.0.17/plexus-utils-3.0.17.jar
+Download https://repo.maven.apache.org/maven2/org/eclipse/sisu/org.eclipse.sisu.inject/0.0.0.M5/org.eclipse.sisu.inject-0.0.0.M5.jar
+Download https://repo.maven.apache.org/maven2/org/sonatype/sisu/sisu-guice/3.1.0/sisu-guice-3.1.0-no_aop.jar
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-component-annotations/1.5.5/plexus-component-annotations-1.5.5.jar
+Download https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-classworlds/2.4/plexus-classworlds-2.4.jar
+Download https://repo.maven.apache.org/maven2/javax/annotation/jsr250-api/1.0/jsr250-api-1.0.jar
+Download https://repo.maven.apache.org/maven2/javax/inject/javax.inject/1/javax.inject-1.jar
+Download https://repo.maven.apache.org/maven2/aopalliance/aopalliance/1.0/aopalliance-1.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava/18.0/guava-18.0.jar
+Download https://plugins.gradle.org/m2/gradle/plugin/com/github/sherter/google-java-format/google-java-format-gradle-plugin/0.7.1/google-java-format-gradle-plugin-0.7.1.jar
+:downloadRepos
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-common-protos/1.12.0/proto-google-common-protos-1.12.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-stats-stackdriver/0.18.0/opencensus-exporter-stats-stackdriver-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-trace-jaeger/0.18.0/opencensus-exporter-trace-jaeger-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-grpc-util/0.18.0/opencensus-contrib-grpc-util-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-trace-stackdriver/0.18.0/opencensus-exporter-trace-stackdriver-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-api/0.18.0/opencensus-api-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-netty/1.17.0/grpc-netty-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-protobuf/1.17.0/grpc-protobuf-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/org/apache/logging/log4j/log4j-core/2.11.1/log4j-core-2.11.1.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-services/1.17.0/grpc-services-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-trace-logging/0.18.0/opencensus-exporter-trace-logging-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-stub/1.17.0/grpc-stub-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/org/apache/logging/log4j/log4j/2.11.1/log4j-2.11.1.pom
+Download https://repo.maven.apache.org/maven2/org/apache/logging/logging-parent/1/logging-parent-1.pom
+Download https://repo.maven.apache.org/maven2/org/apache/apache/18/apache-18.pom
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-java/3.5.1/protobuf-java-3.5.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-parent/3.5.1/protobuf-parent-3.5.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/google/1/google-1.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-context/1.14.0/grpc-context-1.14.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-core/1.14.0/grpc-core-1.14.0.pom
+Download https://repo.maven.apache.org/maven2/com/uber/jaeger/jaeger-core/0.27.0/jaeger-core-0.27.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava/20.0/guava-20.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/20.0/guava-parent-20.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-monitored-resource-util/0.18.0/opencensus-contrib-monitored-resource-util-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/auth/google-auth-library-credentials/0.11.0/google-auth-library-credentials-0.11.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-monitoring/1.52.0/google-cloud-monitoring-1.52.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-clients/0.70.0-alpha/google-cloud-clients-0.70.0-alpha.pom
+Download https://repo.maven.apache.org/maven2/com/google/auth/google-auth-library-parent/0.11.0/google-auth-library-parent-0.11.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-bom/0.70.0-alpha/google-cloud-bom-0.70.0-alpha.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/gax-bom/1.34.0/gax-bom-1.34.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-trace/0.70.0-beta/google-cloud-trace-0.70.0-beta.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-protobuf-lite/1.17.0/grpc-protobuf-lite-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-core/maven-metadata.xml
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-core/1.17.0/grpc-core-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec-http2/maven-metadata.xml
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec-http2/4.1.30.Final/netty-codec-http2-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-parent/4.1.30.Final/netty-parent-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-handler-proxy/4.1.30.Final/netty-handler-proxy-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-java-util/3.5.1/protobuf-java-util-3.5.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/re2j/re2j/1.2/re2j-1.2.pom
+Download https://repo.maven.apache.org/maven2/org/apache/logging/log4j/log4j-api/2.11.1/log4j-api-2.11.1.pom
+Download https://repo.maven.apache.org/maven2/com/uber/jaeger/jaeger-thrift/0.27.0/jaeger-thrift-0.27.0.pom
+Download https://repo.maven.apache.org/maven2/com/squareup/okhttp3/okhttp/3.9.0/okhttp-3.9.0.pom
+Download https://repo.maven.apache.org/maven2/io/opentracing/opentracing-api/0.31.0/opentracing-api-0.31.0.pom
+Download https://repo.maven.apache.org/maven2/io/opentracing/opentracing-util/0.31.0/opentracing-util-0.31.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.8.2/gson-2.8.2.pom
+Download https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.pom
+Download https://repo.maven.apache.org/maven2/com/google/code/gson/gson-parent/2.8.2/gson-parent-2.8.2.pom
+Download https://repo.maven.apache.org/maven2/org/slf4j/slf4j-parent/1.7.25/slf4j-parent-1.7.25.pom
+Download https://repo.maven.apache.org/maven2/io/opentracing/parent/0.31.0/parent-0.31.0.pom
+Download https://repo.maven.apache.org/maven2/com/squareup/okhttp3/parent/3.9.0/parent-3.9.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-core-grpc/1.52.0/google-cloud-core-grpc-1.52.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-cloud-monitoring-v3/1.34.0/proto-google-cloud-monitoring-v3-1.34.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-netty-shaded/1.15.0/grpc-netty-shaded-1.15.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-auth/1.15.0/grpc-auth-1.15.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-core/1.52.0/google-cloud-core-1.52.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/google-api-grpc/0.35.0/google-api-grpc-0.35.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-cloud-trace-v1/0.35.0/proto-google-cloud-trace-v1-0.35.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-cloud-trace-v2/0.35.0/proto-google-cloud-trace-v2-0.35.0.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec-http/4.1.30.Final/netty-codec-http-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-handler/4.1.30.Final/netty-handler-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec-socks/4.1.30.Final/netty-codec-socks-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-transport/4.1.30.Final/netty-transport-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/org/apache/thrift/libthrift/0.9.2/libthrift-0.9.2.pom
+Download https://repo.maven.apache.org/maven2/io/opentracing/opentracing-noop/0.31.0/opentracing-noop-0.31.0.pom
+Download https://repo.maven.apache.org/maven2/com/squareup/okio/okio/1.13.0/okio-1.13.0.pom
+Download https://repo.maven.apache.org/maven2/com/squareup/okio/okio-parent/1.13.0/okio-parent-1.13.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/http-client/google-http-client/1.24.1/google-http-client-1.24.1.pom
+Download https://repo.maven.apache.org/maven2/joda-time/joda-time/2.9.2/joda-time-2.9.2.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/api-common/1.7.0/api-common-1.7.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-iam-v1/0.12.0/proto-google-iam-v1-0.12.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/gax/1.34.0/gax-1.34.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/http-client/google-http-client-parent/1.24.1/google-http-client-parent-1.24.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/api/gax-grpc/1.34.0/gax-grpc-1.34.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-core/1.15.0/grpc-core-1.15.0.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec/4.1.30.Final/netty-codec-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-buffer/4.1.30.Final/netty-buffer-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-resolver/4.1.30.Final/netty-resolver-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpclient/4.2.5/httpclient-4.2.5.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcore/4.2.4/httpcore-4.2.4.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcomponents-client/4.2.5/httpcomponents-client-4.2.5.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcomponents-core/4.2.4/httpcomponents-core-4.2.4.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/project/6/project-6.pom
+Download https://repo.maven.apache.org/maven2/org/threeten/threetenbp/1.3.3/threetenbp-1.3.3.pom
+Download https://repo.maven.apache.org/maven2/com/google/auth/google-auth-library-oauth2-http/0.11.0/google-auth-library-oauth2-http-0.11.0.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-common/4.1.30.Final/netty-common-4.1.30.Final.pom
+Download https://repo.maven.apache.org/maven2/com/google/http-client/google-http-client-jackson2/1.24.1/google-http-client-jackson2-1.24.1.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.9.2/jackson-core-2.9.2.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-base/2.9.2/jackson-base-2.9.2.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-bom/2.9.2/jackson-bom-2.9.2.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-parent/2.9.1/jackson-parent-2.9.1.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/oss-parent/30/oss-parent-30.pom
+Download https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.2.0/error_prone_annotations-2.2.0.pom
+Download https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/mojo/animal-sniffer-annotations/1.17/animal-sniffer-annotations-1.17.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-grpc-metrics/0.17.0/opencensus-contrib-grpc-metrics-0.17.0.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/mojo/animal-sniffer-parent/1.17/animal-sniffer-parent-1.17.pom
+Download https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_parent/2.2.0/error_prone_parent-2.2.0.pom
+Download https://repo.maven.apache.org/maven2/org/codehaus/mojo/mojo-parent/40/mojo-parent-40.pom
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava/26.0-android/guava-26.0-android.pom
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom
+Download https://repo.maven.apache.org/maven2/org/checkerframework/checker-compat-qual/2.5.2/checker-compat-qual-2.5.2.pom
+Download https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/1.1/j2objc-annotations-1.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-java-util/3.6.1/protobuf-java-util-3.6.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-parent/3.6.1/protobuf-parent-3.6.1.pom
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-java/3.6.1/protobuf-java-3.6.1.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-context/1.17.0/grpc-context-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpclient/4.5.3/httpclient-4.5.3.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcomponents-client/4.5.3/httpcomponents-client-4.5.3.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/project/7/project-7.pom
+Download https://repo.maven.apache.org/maven2/commons-codec/commons-codec/1.9/commons-codec-1.9.pom
+Download https://repo.maven.apache.org/maven2/commons-logging/commons-logging/1.2/commons-logging-1.2.pom
+Download https://repo.maven.apache.org/maven2/org/apache/commons/commons-parent/32/commons-parent-32.pom
+Download https://repo.maven.apache.org/maven2/org/apache/commons/commons-parent/34/commons-parent-34.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcore/4.4.6/httpcore-4.4.6.pom
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcomponents-core/4.4.6/httpcomponents-core-4.4.6.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-stats-stackdriver/0.18.0/opencensus-exporter-stats-stackdriver-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-trace-stackdriver/0.18.0/opencensus-exporter-trace-stackdriver-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-trace/0.70.0-beta/google-cloud-trace-0.70.0-beta.jar
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-core-grpc/1.52.0/google-cloud-core-grpc-1.52.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-monitoring/1.52.0/google-cloud-monitoring-1.52.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-cloud-monitoring-v3/1.34.0/proto-google-cloud-monitoring-v3-1.34.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-cloud-trace-v1/0.35.0/proto-google-cloud-trace-v1-0.35.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/gax-grpc/1.34.0/gax-grpc-1.34.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-iam-v1/0.12.0/proto-google-iam-v1-0.12.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-cloud-trace-v2/0.35.0/proto-google-cloud-trace-v2-0.35.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-protobuf/1.17.0/grpc-protobuf-1.17.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-services/1.17.0/grpc-services-1.17.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-trace-jaeger/0.18.0/opencensus-exporter-trace-jaeger-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-common-protos/1.12.0/proto-google-common-protos-1.12.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-grpc-util/0.18.0/opencensus-contrib-grpc-util-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-monitored-resource-util/0.18.0/opencensus-contrib-monitored-resource-util-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-exporter-trace-logging/0.18.0/opencensus-exporter-trace-logging-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-netty-shaded/1.15.0/grpc-netty-shaded-1.15.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-netty/1.17.0/grpc-netty-1.17.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-protobuf-lite/1.17.0/grpc-protobuf-lite-1.17.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-stub/1.17.0/grpc-stub-1.17.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-auth/1.15.0/grpc-auth-1.15.0.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-core/1.17.0/grpc-core-1.17.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-grpc-metrics/0.17.0/opencensus-contrib-grpc-metrics-0.17.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-api/0.18.0/opencensus-api-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-java-util/3.6.1/protobuf-java-util-3.6.1.jar
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protobuf-java/3.6.1/protobuf-java-3.6.1.jar
+Download https://repo.maven.apache.org/maven2/org/apache/logging/log4j/log4j-core/2.11.1/log4j-core-2.11.1.jar
+Download https://repo.maven.apache.org/maven2/io/grpc/grpc-context/1.17.0/grpc-context-1.17.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/guava/guava/26.0-android/guava-26.0-android.jar
+Download https://repo.maven.apache.org/maven2/com/uber/jaeger/jaeger-core/0.27.0/jaeger-core-0.27.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/gax/1.34.0/gax-1.34.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/auth/google-auth-library-oauth2-http/0.11.0/google-auth-library-oauth2-http-0.11.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/auth/google-auth-library-credentials/0.11.0/google-auth-library-credentials-0.11.0.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec-http2/4.1.30.Final/netty-codec-http2-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-handler-proxy/4.1.30.Final/netty-handler-proxy-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/com/google/re2j/re2j/1.2/re2j-1.2.jar
+Download https://repo.maven.apache.org/maven2/org/apache/logging/log4j/log4j-api/2.11.1/log4j-api-2.11.1.jar
+Download https://repo.maven.apache.org/maven2/io/opentracing/opentracing-util/0.31.0/opentracing-util-0.31.0.jar
+Download https://repo.maven.apache.org/maven2/com/uber/jaeger/jaeger-thrift/0.27.0/jaeger-thrift-0.27.0.jar
+Download https://repo.maven.apache.org/maven2/io/opentracing/opentracing-api/0.31.0/opentracing-api-0.31.0.jar
+Download https://repo.maven.apache.org/maven2/org/apache/thrift/libthrift/0.9.2/libthrift-0.9.2.jar
+Download https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.8.2/gson-2.8.2.jar
+Download https://repo.maven.apache.org/maven2/io/opentracing/opentracing-noop/0.31.0/opentracing-noop-0.31.0.jar
+Download https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-handler/4.1.30.Final/netty-handler-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec-http/4.1.30.Final/netty-codec-http-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/com/squareup/okhttp3/okhttp/3.9.0/okhttp-3.9.0.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec-socks/4.1.30.Final/netty-codec-socks-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-codec/4.1.30.Final/netty-codec-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-transport/4.1.30.Final/netty-transport-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/com/squareup/okio/okio/1.13.0/okio-1.13.0.jar
+Download https://repo.maven.apache.org/maven2/joda-time/joda-time/2.9.2/joda-time-2.9.2.jar
+Download https://repo.maven.apache.org/maven2/com/google/http-client/google-http-client-jackson2/1.24.1/google-http-client-jackson2-1.24.1.jar
+Download https://repo.maven.apache.org/maven2/com/google/http-client/google-http-client/1.24.1/google-http-client-1.24.1.jar
+Download https://repo.maven.apache.org/maven2/com/google/api/api-common/1.7.0/api-common-1.7.0.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-buffer/4.1.30.Final/netty-buffer-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpclient/4.5.3/httpclient-4.5.3.jar
+Download https://repo.maven.apache.org/maven2/org/threeten/threetenbp/1.3.3/threetenbp-1.3.3.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-common/4.1.30.Final/netty-common-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.9.2/jackson-core-2.9.2.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-resolver/4.1.30.Final/netty-resolver-4.1.30.Final.jar
+Download https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcore/4.4.6/httpcore-4.4.6.jar
+Download https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.2.0/error_prone_annotations-2.2.0.jar
+Download https://repo.maven.apache.org/maven2/org/checkerframework/checker-compat-qual/2.5.2/checker-compat-qual-2.5.2.jar
+Download https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/1.1/j2objc-annotations-1.1.jar
+Download https://repo.maven.apache.org/maven2/org/codehaus/mojo/animal-sniffer-annotations/1.17/animal-sniffer-annotations-1.17.jar
+Download https://repo.maven.apache.org/maven2/commons-logging/commons-logging/1.2/commons-logging-1.2.jar
+Download https://repo.maven.apache.org/maven2/com/google/cloud/google-cloud-core/1.52.0/google-cloud-core-1.52.0.jar
+Download https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar
+Download https://repo.maven.apache.org/maven2/commons-codec/commons-codec/1.9/commons-codec-1.9.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-log-correlation-log4j2/0.18.0/opencensus-contrib-log-correlation-log4j2-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.9.6/jackson-databind-2.9.6.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-impl/0.18.0/opencensus-impl-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-tcnative-boringssl-static/2.0.8.Final/netty-tcnative-boringssl-static-2.0.8.Final.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.9.6/jackson-core-2.9.6.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-base/2.9.6/jackson-base-2.9.6.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-tcnative-parent/2.0.8.Final/netty-tcnative-parent-2.0.8.Final.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-bom/2.9.6/jackson-bom-2.9.6.pom
+Download https://repo.maven.apache.org/maven2/io/netty/netty-parent/4.0.18.Final/netty-parent-4.0.18.Final.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-parent/2.9.1.1/jackson-parent-2.9.1.1.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/oss-parent/33/oss-parent-33.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.9.0/jackson-annotations-2.9.0.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-parent/2.9.0/jackson-parent-2.9.0.pom
+Download https://repo.maven.apache.org/maven2/com/fasterxml/oss-parent/28/oss-parent-28.pom
+Download https://repo.maven.apache.org/maven2/com/lmax/disruptor/3.4.2/disruptor-3.4.2.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-impl-core/0.18.0/opencensus-impl-core-0.18.0.pom
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-impl/0.18.0/opencensus-impl-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-impl-core/0.18.0/opencensus-impl-core-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/io/opencensus/opencensus-contrib-log-correlation-log4j2/0.18.0/opencensus-contrib-log-correlation-log4j2-0.18.0.jar
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.9.6/jackson-core-2.9.6.jar
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.9.0/jackson-annotations-2.9.0.jar
+Download https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.9.6/jackson-databind-2.9.6.jar
+Download https://repo.maven.apache.org/maven2/com/lmax/disruptor/3.4.2/disruptor-3.4.2.jar
+Download https://repo.maven.apache.org/maven2/io/netty/netty-tcnative-boringssl-static/2.0.8.Final/netty-tcnative-boringssl-static-2.0.8.Final.jar
+
+BUILD SUCCESSFUL in 10s
+1 actionable task: 1 executed
+Removing intermediate container b0b820768b95
+ ---> d3b9687f50bb
+Step 7/17 : COPY . .
+ ---> 80e16f9b8feb
+Step 8/17 : RUN chmod +x gradlew
+ ---> Running in 1a4a14ea3401
+Removing intermediate container 1a4a14ea3401
+ ---> b113c1c5a4bd
+Step 9/17 : RUN ./gradlew installDist
+ ---> Running in 50c29d17cd95
+Starting a Gradle Daemon, 1 incompatible and 1 stopped Daemons could not be reused, use --status for details
+:adService
+:adServiceClient
+:extractIncludeProto
+:extractProto
+:generateProto
+Using TaskInputs.file() with something that doesn't resolve to a File object has been deprecated and is scheduled to be removed in Gradle 5.0. Use TaskInputs.files() instead.
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protoc/3.5.1-1/protoc-3.5.1-1.pom
+Download https://repo.maven.apache.org/maven2/com/google/protobuf/protoc/3.5.1-1/protoc-3.5.1-1-linux-x86_64.exe
+Download https://repo.maven.apache.org/maven2/io/grpc/protoc-gen-grpc-java/1.17.0/protoc-gen-grpc-java-1.17.0.pom
+Download https://repo.maven.apache.org/maven2/io/grpc/protoc-gen-grpc-java/1.17.0/protoc-gen-grpc-java-1.17.0-linux-x86_64.exe
+:compileJavaNote: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+:processResources
+:classes
+:jar
+:startScripts SKIPPED
+:installDist
+
+BUILD SUCCESSFUL in 10s
+9 actionable tasks: 9 executed
+Removing intermediate container 50c29d17cd95
+ ---> 5caa0f21c08c
+Step 10/17 : FROM openjdk:8-slim
+ ---> a0b0dea106dd
+Step 11/17 : RUN apt-get -y update && apt-get install -qqy     wget     && rm -rf /var/lib/apt/lists/*
+ ---> Running in 8107567cf6f1
+Get:1 http://deb.debian.org/debian buster InRelease [122 kB]
+Get:2 http://deb.debian.org/debian buster-updates InRelease [49.3 kB]
+Get:3 http://security-cdn.debian.org/debian-security buster/updates InRelease [65.4 kB]
+Get:4 http://deb.debian.org/debian buster/main amd64 Packages [7908 kB]
+Get:5 http://deb.debian.org/debian buster-updates/main amd64 Packages [5792 B]
+Get:6 http://security-cdn.debian.org/debian-security buster/updates/main amd64 Packages [168 kB]
+Fetched 8318 kB in 1s (6265 kB/s)
+Reading package lists...
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package libpcre2-8-0:amd64.
+(Reading database ... 6888 files and directories currently installed.)
+Preparing to unpack .../libpcre2-8-0_10.32-5_amd64.deb ...
+Unpacking libpcre2-8-0:amd64 (10.32-5) ...
+Selecting previously unselected package libpsl5:amd64.
+Preparing to unpack .../libpsl5_0.20.2-2_amd64.deb ...
+Unpacking libpsl5:amd64 (0.20.2-2) ...
+Selecting previously unselected package wget.
+Preparing to unpack .../wget_1.20.1-1.1_amd64.deb ...
+Unpacking wget (1.20.1-1.1) ...
+Selecting previously unselected package publicsuffix.
+Preparing to unpack .../publicsuffix_20190415.1030-1_all.deb ...
+Unpacking publicsuffix (20190415.1030-1) ...
+Setting up libpsl5:amd64 (0.20.2-2) ...
+Setting up libpcre2-8-0:amd64 (10.32-5) ...
+Setting up publicsuffix (20190415.1030-1) ...
+Setting up wget (1.20.1-1.1) ...
+Processing triggers for libc-bin (2.28-10) ...
+Removing intermediate container 8107567cf6f1
+ ---> 3987922a02d9
+Step 12/17 : RUN mkdir -p /opt/cprof &&     wget -q -O- https://storage.googleapis.com/cloud-profiler/java/latest/profiler_java_agent.tar.gz     | tar xzv -C /opt/cprof &&     rm -rf profiler_java_agent.tar.gz
+ ---> Running in 3f19d63c0502
+version.txt
+NOTICES
+profiler_java_agent.so
+Removing intermediate container 3f19d63c0502
+ ---> 1da3860c80c3
+Step 13/17 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.1 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Running in a3047e1073a9
+Removing intermediate container a3047e1073a9
+ ---> 71e52e9b4d77
+Step 14/17 : WORKDIR /app
+ ---> Running in dc64019c62e3
+Removing intermediate container dc64019c62e3
+ ---> 509b51172f2e
+Step 15/17 : COPY --from=builder /app .
+ ---> 012f0fc5fe63
+Step 16/17 : EXPOSE 9555
+ ---> Running in 053f3ef23637
+Removing intermediate container 053f3ef23637
+ ---> d44cb66f1e6b
+Step 17/17 : ENTRYPOINT ["/app/build/install/hipstershop/bin/AdService"]
+ ---> Running in a3d46ee6d1da
+Removing intermediate container a3d46ee6d1da
+ ---> a80bc3c019be
+Successfully built a80bc3c019be
+Successfully tagged adservice:latest
+cartservice
+Sending build context to Docker daemon  285.7kB
+Step 1/10 : FROM microsoft/dotnet:2.1-sdk-alpine as builder
+2.1-sdk-alpine: Pulling from microsoft/dotnet
+
+
+
+
+
+Digest: sha256:05705aa0d48c4dfdeae3e18ab571c1102c2bde04845aba8adf2c648faf993a15
+Status: Downloaded newer image for microsoft/dotnet:2.1-sdk-alpine
+ ---> 4cc752283972
+Step 2/10 : WORKDIR /app
+ ---> Running in ece8113eb903
+Removing intermediate container ece8113eb903
+ ---> 82643c8f1938
+Step 3/10 : COPY . .
+ ---> 99e0b06e01d2
+Step 4/10 : RUN dotnet restore &&     dotnet build &&     dotnet publish -c release -r linux-musl-x64 -o /cartservice
+ ---> Running in ba42e4cb68b7
+  Restore completed in 1.94 sec for /app/cartservice.csproj.
+Microsoft (R) Build Engine version 16.0.450+ga8dc7f1d34 for .NET Core
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Restore completed in 38.65 ms for /app/cartservice.csproj.
+  cartservice -> /app/bin/Debug/netcoreapp2.1/cartservice.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.52
+Microsoft (R) Build Engine version 16.0.450+ga8dc7f1d34 for .NET Core
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Restore completed in 2.36 sec for /app/cartservice.csproj.
+  cartservice -> /app/bin/release/netcoreapp2.1/linux-musl-x64/cartservice.dll
+  cartservice -> /cartservice/
+Removing intermediate container ba42e4cb68b7
+ ---> c39d3abb84bf
+Step 5/10 : FROM alpine:3.8
+3.8: Pulling from library/alpine
+
+Digest: sha256:04696b491e0cc3c58a75bace8941c14c924b9f313b03ce5029ebbc040ed9dcd9
+Status: Downloaded newer image for alpine:3.8
+ ---> dac705114996
+Step 6/10 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Running in d4a71051c3dc
+Removing intermediate container d4a71051c3dc
+ ---> 7b86b946132c
+Step 7/10 : RUN apk add --no-cache     busybox-extras     libc6-compat     libunwind     libuuid     libgcc     libstdc++     libintl     icu
+ ---> Running in eccd4b3bc32f
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.8/main/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.8/community/x86_64/APKINDEX.tar.gz
+(1/11) Upgrading musl (1.1.19-r10 -> 1.1.19-r11)
+(2/11) Installing busybox-extras (1.28.4-r3)
+Executing busybox-extras-1.28.4-r3.post-install
+(3/11) Installing libgcc (6.4.0-r9)
+(4/11) Installing libstdc++ (6.4.0-r9)
+(5/11) Installing icu-libs (60.2-r2)
+(6/11) Installing icu (60.2-r2)
+(7/11) Upgrading musl-utils (1.1.19-r10 -> 1.1.19-r11)
+(8/11) Installing libc6-compat (1.1.19-r11)
+(9/11) Installing libintl (0.19.8.1-r2)
+(10/11) Installing libunwind (1.2.1-r1)
+(11/11) Installing libuuid (2.32-r0)
+Executing busybox-1.28.4-r3.trigger
+OK: 37 MiB in 22 packages
+Removing intermediate container eccd4b3bc32f
+ ---> 8fd02d961cd0
+Step 8/10 : WORKDIR /app
+ ---> Running in 27d09aad25f2
+Removing intermediate container 27d09aad25f2
+ ---> 5ecb04d4fdef
+Step 9/10 : COPY --from=builder /cartservice .
+ ---> 87c0c523adad
+Step 10/10 : ENTRYPOINT ["./cartservice", "start"]
+ ---> Running in d73b023c981d
+Removing intermediate container d73b023c981d
+ ---> 6069c1c8f7e5
+Successfully built 6069c1c8f7e5
+Successfully tagged cartservice:latest
+checkoutservice
+Sending build context to Docker daemon  137.2kB
+Step 1/14 : FROM golang:1.12-alpine as builder
+1.12-alpine: Pulling from library/golang
+
+
+
+
+
+Digest: sha256:92acfd62e81d755317137517e50502f1a5e81a459dd86be3d1ce36ffd7005d0f
+Status: Downloaded newer image for golang:1.12-alpine
+ ---> 87a8d49e604a
+Step 2/14 : RUN apk add --no-cache ca-certificates git &&       wget -qO/go/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 &&       chmod +x /go/bin/dep
+ ---> Running in af6940dc8a93
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.11/main/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.11/community/x86_64/APKINDEX.tar.gz
+(1/5) Installing nghttp2-libs (1.40.0-r0)
+(2/5) Installing libcurl (7.67.0-r0)
+(3/5) Installing expat (2.2.9-r1)
+(4/5) Installing pcre2 (10.34-r1)
+(5/5) Installing git (2.24.1-r0)
+Executing busybox-1.31.1-r8.trigger
+OK: 22 MiB in 20 packages
+Removing intermediate container af6940dc8a93
+ ---> 565b0547520f
+Step 3/14 : ENV PROJECT github.com/GoogleCloudPlatform/microservices-demo/src/checkoutservice
+ ---> Running in f120198844c7
+Removing intermediate container f120198844c7
+ ---> 010b2d5242ad
+Step 4/14 : WORKDIR /go/src/$PROJECT
+ ---> Running in f2db58691af3
+Removing intermediate container f2db58691af3
+ ---> d2baf42ace33
+Step 5/14 : COPY Gopkg.* ./
+ ---> 246cbb36e894
+Step 6/14 : RUN dep ensure --vendor-only -v
+ ---> Running in 07e067d583cb
+(1/20) Wrote github.com/google/uuid@v1.1.1
+(2/20) Wrote contrib.go.opencensus.io/exporter/stackdriver@v0.5.0
+(3/20) Wrote github.com/GoogleCloudPlatform/microservices-demo@v0.1.1
+(4/20) Wrote github.com/konsorten/go-windows-terminal-sequences@v1.0.2
+(5/20) Wrote golang.org/x/net@master
+(6/20) Wrote google.golang.org/grpc@v1.22.0
+(7/20) Wrote cloud.google.com/go@v0.40.0
+(8/20) Wrote git.apache.org/thrift.git (from github.com/apache/thrift)@master
+(9/20) Wrote github.com/golang/protobuf@v1.3.1
+(10/20) Wrote github.com/googleapis/gax-go@v2.0.5
+(11/20) Wrote golang.org/x/text@v0.3.2
+(12/20) Wrote golang.org/x/sys@master
+(13/20) Wrote golang.org/x/oauth2@master
+(14/20) Wrote golang.org/x/sync@master
+(15/20) Wrote github.com/google/pprof@master
+(16/20) Wrote github.com/sirupsen/logrus@v1.4.2
+(17/20) Wrote go.opencensus.io@v0.16.0
+(18/20) Wrote google.golang.org/appengine@v1.6.1
+(19/20) Wrote google.golang.org/genproto@master
+(20/20) Wrote google.golang.org/api@master
+Removing intermediate container 07e067d583cb
+ ---> d318f00d4c17
+Step 7/14 : COPY . .
+ ---> 8a70fe48ee62
+Step 8/14 : RUN go build -gcflags='-N -l' -o /checkoutservice .
+ ---> Running in fb3365c9fbb4
+Removing intermediate container fb3365c9fbb4
+ ---> 5d91ceaa472a
+Step 9/14 : FROM alpine as release
+ ---> 961769676411
+Step 10/14 : RUN apk add --no-cache ca-certificates
+ ---> Running in c8bdd22ef8ad
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.10/main/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.10/community/x86_64/APKINDEX.tar.gz
+(1/1) Installing ca-certificates (20190108-r0)
+Executing busybox-1.30.1-r2.trigger
+Executing ca-certificates-20190108-r0.trigger
+OK: 6 MiB in 15 packages
+Removing intermediate container c8bdd22ef8ad
+ ---> a4d865ebd5a4
+Step 11/14 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Running in ac8705cc1457
+Removing intermediate container ac8705cc1457
+ ---> 356587025cca
+Step 12/14 : COPY --from=builder /checkoutservice /checkoutservice
+ ---> 0cbaec1447b5
+Step 13/14 : EXPOSE 5050
+ ---> Running in 00d89cfc0cc0
+Removing intermediate container 00d89cfc0cc0
+ ---> 54434b5563c6
+Step 14/14 : ENTRYPOINT ["/checkoutservice"]
+ ---> Running in d2963bd1d0d6
+Removing intermediate container d2963bd1d0d6
+ ---> a2ebeefba2eb
+Successfully built a2ebeefba2eb
+Successfully tagged checkoutservice:latest
+currencyservice
+Sending build context to Docker daemon  162.8kB
+Step 1/13 : FROM node:8-alpine as base
+8-alpine: Pulling from library/node
+
+
+
+
+Digest: sha256:38f7bf07ffd72ac612ec8c829cb20ad416518dbb679768d7733c93175453f4d4
+Status: Downloaded newer image for node:8-alpine
+ ---> 2b8fcdc6230a
+Step 2/13 : FROM base as builder
+ ---> 2b8fcdc6230a
+Step 3/13 : RUN apk add --update --no-cache     python     make     g++
+ ---> Running in 950d262a7c44
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.11/main/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.11/community/x86_64/APKINDEX.tar.gz
+(1/22) Installing binutils (2.33.1-r0)
+(2/22) Installing gmp (6.1.2-r1)
+(3/22) Installing isl (0.18-r0)
+(4/22) Installing libgomp (9.2.0-r3)
+(5/22) Installing libatomic (9.2.0-r3)
+(6/22) Installing mpfr4 (4.0.2-r1)
+(7/22) Installing mpc1 (1.1.0-r1)
+(8/22) Installing gcc (9.2.0-r3)
+(9/22) Installing musl-dev (1.1.24-r0)
+(10/22) Installing libc-dev (0.7.2-r0)
+(11/22) Installing g++ (9.2.0-r3)
+(12/22) Installing make (4.2.1-r2)
+(13/22) Installing libbz2 (1.0.8-r1)
+(14/22) Installing expat (2.2.9-r1)
+(15/22) Installing libffi (3.2.1-r6)
+(16/22) Installing gdbm (1.13-r1)
+(17/22) Installing ncurses-terminfo-base (6.1_p20191130-r0)
+(18/22) Installing ncurses-terminfo (6.1_p20191130-r0)
+(19/22) Installing ncurses-libs (6.1_p20191130-r0)
+(20/22) Installing readline (8.0.1-r0)
+(21/22) Installing sqlite-libs (3.30.1-r1)
+(22/22) Installing python2 (2.7.16-r3)
+Executing busybox-1.31.1-r8.trigger
+OK: 218 MiB in 38 packages
+Removing intermediate container 950d262a7c44
+ ---> c8ff30b88b3f
+Step 4/13 : WORKDIR /usr/src/app
+ ---> Running in f3741c059c58
+Removing intermediate container f3741c059c58
+ ---> f99a1c09e0c2
+Step 5/13 : COPY package*.json ./
+ ---> 6848661e3433
+Step 6/13 : RUN npm install --only=production
+ ---> Running in a2799f357874
+
+> pprof@1.1.0 install /usr/src/app/node_modules/pprof
+> node-pre-gyp install --fallback-to-build
+
+node-pre-gyp WARN Using request for node-pre-gyp https download 
+[pprof] Success: "/usr/src/app/node_modules/pprof/build/node-v57-linux-x64-musl/pprof.node" is installed via remote
+
+> grpc@1.22.2 install /usr/src/app/node_modules/grpc
+> node-pre-gyp install --fallback-to-build --library=static_library
+
+node-pre-gyp WARN Using request for node-pre-gyp https download 
+[grpc] Success: "/usr/src/app/node_modules/grpc/src/node/extension_binary/node-v57-linux-x64-musl/grpc_node.node" is installed via remote
+
+> protobufjs@6.8.8 postinstall /usr/src/app/node_modules/protobufjs
+> node scripts/postinstall
+
+added 318 packages from 307 contributors and audited 1174 packages in 6.751s
+found 19 vulnerabilities (4 moderate, 15 high)
+  run `npm audit fix` to fix them, or `npm audit` for details
+Removing intermediate container a2799f357874
+ ---> 2bab4ae48e3f
+Step 7/13 : FROM base
+ ---> 2b8fcdc6230a
+Step 8/13 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Running in bea7741e6d95
+Removing intermediate container bea7741e6d95
+ ---> 8aba174284e6
+Step 9/13 : WORKDIR /usr/src/app
+ ---> Running in 0cc891162046
+Removing intermediate container 0cc891162046
+ ---> 5273574c0311
+Step 10/13 : COPY --from=builder /usr/src/app/node_modules ./node_modules
+ ---> 87d6985410cc
+Step 11/13 : COPY . .
+ ---> 2c9c2f8c7465
+Step 12/13 : EXPOSE 7000
+ ---> Running in a5aba79e38f8
+Removing intermediate container a5aba79e38f8
+ ---> b8a1aaea6de7
+Step 13/13 : ENTRYPOINT [ "node", "server.js" ]
+ ---> Running in 95e1294d1d1a
+Removing intermediate container 95e1294d1d1a
+ ---> 3be96e567f26
+Successfully built 3be96e567f26
+Successfully tagged currencyservice:latest
+emailservice
+Sending build context to Docker daemon  102.4kB
+Step 1/14 : FROM python:3.7-slim as base
+3.7-slim: Pulling from library/python
+
+
+
+
+
+Digest: sha256:5886bc9424f2edcae8411a6b28f27b34af475bf0f72db26ed0d6a2c12397d041
+Status: Downloaded newer image for python:3.7-slim
+ ---> 5b03cb8574a0
+Step 2/14 : FROM base as builder
+ ---> 5b03cb8574a0
+Step 3/14 : RUN apt-get -qq update     && apt-get install -y --no-install-recommends         g++     && rm -rf /var/lib/apt/lists/*
+ ---> Running in f05fab991876
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu cpp cpp-8 g++-8 gcc gcc-8
+  libasan5 libatomic1 libbinutils libc-dev-bin libc6-dev libcc1-0 libgcc-8-dev
+  libgomp1 libisl19 libitm1 liblsan0 libmpc3 libmpfr6 libmpx2 libquadmath0
+  libstdc++-8-dev libtsan0 libubsan1 linux-libc-dev
+Suggested packages:
+  binutils-doc cpp-doc gcc-8-locales g++-multilib g++-8-multilib gcc-8-doc
+  libstdc++6-8-dbg gcc-multilib make manpages-dev autoconf automake libtool
+  flex bison gdb gcc-doc gcc-8-multilib libgcc1-dbg libgomp1-dbg libitm1-dbg
+  libatomic1-dbg libasan5-dbg liblsan0-dbg libtsan0-dbg libubsan1-dbg
+  libmpx2-dbg libquadmath0-dbg glibc-doc libstdc++-8-doc
+Recommended packages:
+  manpages manpages-dev
+The following NEW packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu cpp cpp-8 g++ g++-8 gcc
+  gcc-8 libasan5 libatomic1 libbinutils libc-dev-bin libc6-dev libcc1-0
+  libgcc-8-dev libgomp1 libisl19 libitm1 liblsan0 libmpc3 libmpfr6 libmpx2
+  libquadmath0 libstdc++-8-dev libtsan0 libubsan1 linux-libc-dev
+0 upgraded, 28 newly installed, 0 to remove and 0 not upgraded.
+Need to get 43.2 MB of archives.
+After this operation, 175 MB of additional disk space will be used.
+Get:1 http://security.debian.org/debian-security buster/updates/main amd64 linux-libc-dev amd64 4.19.67-2+deb10u2 [1234 kB]
+Get:2 http://deb.debian.org/debian buster/main amd64 binutils-common amd64 2.31.1-16 [2073 kB]
+Get:3 http://deb.debian.org/debian buster/main amd64 libbinutils amd64 2.31.1-16 [478 kB]
+Get:4 http://deb.debian.org/debian buster/main amd64 binutils-x86-64-linux-gnu amd64 2.31.1-16 [1823 kB]
+Get:5 http://deb.debian.org/debian buster/main amd64 binutils amd64 2.31.1-16 [56.8 kB]
+Get:6 http://deb.debian.org/debian buster/main amd64 libisl19 amd64 0.20-2 [587 kB]
+Get:7 http://deb.debian.org/debian buster/main amd64 libmpfr6 amd64 4.0.2-1 [775 kB]
+Get:8 http://deb.debian.org/debian buster/main amd64 libmpc3 amd64 1.1.0-1 [41.3 kB]
+Get:9 http://deb.debian.org/debian buster/main amd64 cpp-8 amd64 8.3.0-6 [8914 kB]
+Get:10 http://deb.debian.org/debian buster/main amd64 cpp amd64 4:8.3.0-1 [19.4 kB]
+Get:11 http://deb.debian.org/debian buster/main amd64 libcc1-0 amd64 8.3.0-6 [46.6 kB]
+Get:12 http://deb.debian.org/debian buster/main amd64 libgomp1 amd64 8.3.0-6 [75.8 kB]
+Get:13 http://deb.debian.org/debian buster/main amd64 libitm1 amd64 8.3.0-6 [27.7 kB]
+Get:14 http://deb.debian.org/debian buster/main amd64 libatomic1 amd64 8.3.0-6 [9032 B]
+Get:15 http://deb.debian.org/debian buster/main amd64 libasan5 amd64 8.3.0-6 [362 kB]
+Get:16 http://deb.debian.org/debian buster/main amd64 liblsan0 amd64 8.3.0-6 [131 kB]
+Get:17 http://deb.debian.org/debian buster/main amd64 libtsan0 amd64 8.3.0-6 [283 kB]
+Get:18 http://deb.debian.org/debian buster/main amd64 libubsan1 amd64 8.3.0-6 [120 kB]
+Get:19 http://deb.debian.org/debian buster/main amd64 libmpx2 amd64 8.3.0-6 [11.4 kB]
+Get:20 http://deb.debian.org/debian buster/main amd64 libquadmath0 amd64 8.3.0-6 [133 kB]
+Get:21 http://deb.debian.org/debian buster/main amd64 libgcc-8-dev amd64 8.3.0-6 [2298 kB]
+Get:22 http://deb.debian.org/debian buster/main amd64 gcc-8 amd64 8.3.0-6 [9452 kB]
+Get:23 http://deb.debian.org/debian buster/main amd64 gcc amd64 4:8.3.0-1 [5196 B]
+Get:24 http://deb.debian.org/debian buster/main amd64 libc-dev-bin amd64 2.28-10 [275 kB]
+Get:25 http://deb.debian.org/debian buster/main amd64 libc6-dev amd64 2.28-10 [2691 kB]
+Get:26 http://deb.debian.org/debian buster/main amd64 libstdc++-8-dev amd64 8.3.0-6 [1532 kB]
+Get:27 http://deb.debian.org/debian buster/main amd64 g++-8 amd64 8.3.0-6 [9752 kB]
+Get:28 http://deb.debian.org/debian buster/main amd64 g++ amd64 4:8.3.0-1 [1644 B]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 43.2 MB in 1s (81.9 MB/s)
+Selecting previously unselected package binutils-common:amd64.
+(Reading database ... 6828 files and directories currently installed.)
+Preparing to unpack .../00-binutils-common_2.31.1-16_amd64.deb ...
+Unpacking binutils-common:amd64 (2.31.1-16) ...
+Selecting previously unselected package libbinutils:amd64.
+Preparing to unpack .../01-libbinutils_2.31.1-16_amd64.deb ...
+Unpacking libbinutils:amd64 (2.31.1-16) ...
+Selecting previously unselected package binutils-x86-64-linux-gnu.
+Preparing to unpack .../02-binutils-x86-64-linux-gnu_2.31.1-16_amd64.deb ...
+Unpacking binutils-x86-64-linux-gnu (2.31.1-16) ...
+Selecting previously unselected package binutils.
+Preparing to unpack .../03-binutils_2.31.1-16_amd64.deb ...
+Unpacking binutils (2.31.1-16) ...
+Selecting previously unselected package libisl19:amd64.
+Preparing to unpack .../04-libisl19_0.20-2_amd64.deb ...
+Unpacking libisl19:amd64 (0.20-2) ...
+Selecting previously unselected package libmpfr6:amd64.
+Preparing to unpack .../05-libmpfr6_4.0.2-1_amd64.deb ...
+Unpacking libmpfr6:amd64 (4.0.2-1) ...
+Selecting previously unselected package libmpc3:amd64.
+Preparing to unpack .../06-libmpc3_1.1.0-1_amd64.deb ...
+Unpacking libmpc3:amd64 (1.1.0-1) ...
+Selecting previously unselected package cpp-8.
+Preparing to unpack .../07-cpp-8_8.3.0-6_amd64.deb ...
+Unpacking cpp-8 (8.3.0-6) ...
+Selecting previously unselected package cpp.
+Preparing to unpack .../08-cpp_4%3a8.3.0-1_amd64.deb ...
+Unpacking cpp (4:8.3.0-1) ...
+Selecting previously unselected package libcc1-0:amd64.
+Preparing to unpack .../09-libcc1-0_8.3.0-6_amd64.deb ...
+Unpacking libcc1-0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libgomp1:amd64.
+Preparing to unpack .../10-libgomp1_8.3.0-6_amd64.deb ...
+Unpacking libgomp1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libitm1:amd64.
+Preparing to unpack .../11-libitm1_8.3.0-6_amd64.deb ...
+Unpacking libitm1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libatomic1:amd64.
+Preparing to unpack .../12-libatomic1_8.3.0-6_amd64.deb ...
+Unpacking libatomic1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libasan5:amd64.
+Preparing to unpack .../13-libasan5_8.3.0-6_amd64.deb ...
+Unpacking libasan5:amd64 (8.3.0-6) ...
+Selecting previously unselected package liblsan0:amd64.
+Preparing to unpack .../14-liblsan0_8.3.0-6_amd64.deb ...
+Unpacking liblsan0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libtsan0:amd64.
+Preparing to unpack .../15-libtsan0_8.3.0-6_amd64.deb ...
+Unpacking libtsan0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libubsan1:amd64.
+Preparing to unpack .../16-libubsan1_8.3.0-6_amd64.deb ...
+Unpacking libubsan1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libmpx2:amd64.
+Preparing to unpack .../17-libmpx2_8.3.0-6_amd64.deb ...
+Unpacking libmpx2:amd64 (8.3.0-6) ...
+Selecting previously unselected package libquadmath0:amd64.
+Preparing to unpack .../18-libquadmath0_8.3.0-6_amd64.deb ...
+Unpacking libquadmath0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libgcc-8-dev:amd64.
+Preparing to unpack .../19-libgcc-8-dev_8.3.0-6_amd64.deb ...
+Unpacking libgcc-8-dev:amd64 (8.3.0-6) ...
+Selecting previously unselected package gcc-8.
+Preparing to unpack .../20-gcc-8_8.3.0-6_amd64.deb ...
+Unpacking gcc-8 (8.3.0-6) ...
+Selecting previously unselected package gcc.
+Preparing to unpack .../21-gcc_4%3a8.3.0-1_amd64.deb ...
+Unpacking gcc (4:8.3.0-1) ...
+Selecting previously unselected package libc-dev-bin.
+Preparing to unpack .../22-libc-dev-bin_2.28-10_amd64.deb ...
+Unpacking libc-dev-bin (2.28-10) ...
+Selecting previously unselected package linux-libc-dev:amd64.
+Preparing to unpack .../23-linux-libc-dev_4.19.67-2+deb10u2_amd64.deb ...
+Unpacking linux-libc-dev:amd64 (4.19.67-2+deb10u2) ...
+Selecting previously unselected package libc6-dev:amd64.
+Preparing to unpack .../24-libc6-dev_2.28-10_amd64.deb ...
+Unpacking libc6-dev:amd64 (2.28-10) ...
+Selecting previously unselected package libstdc++-8-dev:amd64.
+Preparing to unpack .../25-libstdc++-8-dev_8.3.0-6_amd64.deb ...
+Unpacking libstdc++-8-dev:amd64 (8.3.0-6) ...
+Selecting previously unselected package g++-8.
+Preparing to unpack .../26-g++-8_8.3.0-6_amd64.deb ...
+Unpacking g++-8 (8.3.0-6) ...
+Selecting previously unselected package g++.
+Preparing to unpack .../27-g++_4%3a8.3.0-1_amd64.deb ...
+Unpacking g++ (4:8.3.0-1) ...
+Setting up binutils-common:amd64 (2.31.1-16) ...
+Setting up linux-libc-dev:amd64 (4.19.67-2+deb10u2) ...
+Setting up libgomp1:amd64 (8.3.0-6) ...
+Setting up libasan5:amd64 (8.3.0-6) ...
+Setting up libmpfr6:amd64 (4.0.2-1) ...
+Setting up libquadmath0:amd64 (8.3.0-6) ...
+Setting up libmpc3:amd64 (1.1.0-1) ...
+Setting up libatomic1:amd64 (8.3.0-6) ...
+Setting up libmpx2:amd64 (8.3.0-6) ...
+Setting up libubsan1:amd64 (8.3.0-6) ...
+Setting up libisl19:amd64 (0.20-2) ...
+Setting up libbinutils:amd64 (2.31.1-16) ...
+Setting up cpp-8 (8.3.0-6) ...
+Setting up libc-dev-bin (2.28-10) ...
+Setting up libcc1-0:amd64 (8.3.0-6) ...
+Setting up liblsan0:amd64 (8.3.0-6) ...
+Setting up libitm1:amd64 (8.3.0-6) ...
+Setting up binutils-x86-64-linux-gnu (2.31.1-16) ...
+Setting up libtsan0:amd64 (8.3.0-6) ...
+Setting up binutils (2.31.1-16) ...
+Setting up libgcc-8-dev:amd64 (8.3.0-6) ...
+Setting up cpp (4:8.3.0-1) ...
+Setting up libc6-dev:amd64 (2.28-10) ...
+Setting up libstdc++-8-dev:amd64 (8.3.0-6) ...
+Setting up gcc-8 (8.3.0-6) ...
+Setting up gcc (4:8.3.0-1) ...
+Setting up g++-8 (8.3.0-6) ...
+Setting up g++ (4:8.3.0-1) ...
+update-alternatives: using /usr/bin/g++ to provide /usr/bin/c++ (c++) in auto mode
+Processing triggers for libc-bin (2.28-10) ...
+Removing intermediate container f05fab991876
+ ---> aa51e334f8bf
+Step 4/14 : COPY requirements.txt .
+ ---> f25f347eacf2
+Step 5/14 : RUN pip install -r requirements.txt
+ ---> Running in 921d54b6b3b8
+Collecting cachetools==3.0.0
+  Downloading https://files.pythonhosted.org/packages/76/7e/08cd3846bebeabb6b1cfc4af8aae649d90249b4aeed080bddb5297f1d73b/cachetools-3.0.0-py2.py3-none-any.whl
+Collecting certifi==2018.11.29
+  Downloading https://files.pythonhosted.org/packages/9f/e0/accfc1b56b57e9750eba272e24c4dddeac86852c2bebd1236674d7887e8a/certifi-2018.11.29-py2.py3-none-any.whl (154kB)
+Collecting chardet==3.0.4
+  Downloading https://files.pythonhosted.org/packages/bc/a9/01ffebfb562e4274b6487b4bb1ddec7ca55ec7510b22e4c51f14098443b8/chardet-3.0.4-py2.py3-none-any.whl (133kB)
+Collecting google-api-core[grpc]==1.6.0
+  Downloading https://files.pythonhosted.org/packages/39/1f/33ec7c4b68e8452a604f93571f53b74cbdd86c29e975d8c240efaa479950/google_api_core-1.6.0-py2.py3-none-any.whl (64kB)
+Collecting google-api-python-client==1.7.8
+  Downloading https://files.pythonhosted.org/packages/55/e9/e8fb2e3a031cb69b9524b80a92b126665d9a17421700a219555e3233ab6a/google_api_python_client-1.7.8-py3-none-any.whl (56kB)
+Collecting google-auth-httplib2==0.0.3
+  Downloading https://files.pythonhosted.org/packages/33/49/c814d6d438b823441552198f096fcd0377fd6c88714dbed34f1d3c8c4389/google_auth_httplib2-0.0.3-py2.py3-none-any.whl
+Collecting google-auth==1.6.2
+  Downloading https://files.pythonhosted.org/packages/4e/85/71b2dfbf5b4241cd031cc333ed71f90a271074a97cb2c517bb65f07a1a90/google_auth-1.6.2-py2.py3-none-any.whl (73kB)
+Collecting google-cloud-core==0.29.1
+  Downloading https://files.pythonhosted.org/packages/0c/f2/3c225e7a69cb27d283b68bff867722bd066bc1858611180197f711815ea5/google_cloud_core-0.29.1-py2.py3-none-any.whl
+Collecting google-cloud-profiler==1.0.8
+  Downloading https://files.pythonhosted.org/packages/93/50/aa05109a907904865ec96ecb16faf5627d997f826b56926551be4919b4fc/google-cloud-profiler-1.0.8.tar.gz
+Collecting google-cloud-trace==0.20.2
+  Downloading https://files.pythonhosted.org/packages/1b/0d/9a5365def9350934f3f48e3028fe2ec22db3a2e7c547d548b20e7c9c62e4/google_cloud_trace-0.20.2-py2.py3-none-any.whl (61kB)
+Collecting googleapis-common-protos==1.5.5
+  Downloading https://files.pythonhosted.org/packages/ae/94/a256572abf5d10347301c638d5df552fab1515497270726e6b56698d2e99/googleapis-common-protos-1.5.5.tar.gz
+Collecting grpcio-health-checking==1.12.1
+  Downloading https://files.pythonhosted.org/packages/85/8e/a7137be418e7b307b84a2bc0f94009058a76660fc2bffd3b543d88cefe2a/grpcio-health-checking-1.12.1.tar.gz
+Collecting grpcio==1.16.1
+  Downloading https://files.pythonhosted.org/packages/38/29/c1afe6a27c43111081773b8bfab444f5fb21669d36b6f355a800867bf9e9/grpcio-1.16.1-cp37-cp37m-manylinux1_x86_64.whl (9.7MB)
+Collecting httplib2==0.12.1
+  Downloading https://files.pythonhosted.org/packages/75/d0/f213003c9deec99fb4f46e54580b93a3b121c487d9d6d888fc12267eb2a2/httplib2-0.12.1.tar.gz (218kB)
+Collecting idna==2.8
+  Downloading https://files.pythonhosted.org/packages/14/2c/cd551d81dbe15200be1cf41cd03869a46fe7226e7450af7a6545bfc474c9/idna-2.8-py2.py3-none-any.whl (58kB)
+Collecting jinja2==2.10
+  Downloading https://files.pythonhosted.org/packages/7f/ff/ae64bacdfc95f27a016a7bed8e8686763ba4d277a78ca76f32659220a731/Jinja2-2.10-py2.py3-none-any.whl (126kB)
+Collecting markupsafe==1.1.0
+  Downloading https://files.pythonhosted.org/packages/e4/c4/adcc2d6f2ac2146cc04e076f14f1006c1de8e1e747fa067668b6573000b8/MarkupSafe-1.1.0-cp37-cp37m-manylinux1_x86_64.whl
+Collecting opencensus[stackdriver]==0.1.10
+  Downloading https://files.pythonhosted.org/packages/1e/20/10cd833a76fa7bd1b0c73e81e8163adf184541945bb2b29f345ce0e2900e/opencensus-0.1.10-py2.py3-none-any.whl (185kB)
+Collecting protobuf==3.6.1
+  Downloading https://files.pythonhosted.org/packages/3a/30/289ead101f94998d88e8961a3548aea29417ae0057be23972483cddebf4f/protobuf-3.6.1-cp37-cp37m-manylinux1_x86_64.whl (1.1MB)
+Collecting pyasn1-modules==0.2.3
+  Downloading https://files.pythonhosted.org/packages/59/84/339c2de112d7448d7d4c500b8016783d9eac8981f89ec1d58fdd4685d97f/pyasn1_modules-0.2.3-py2.py3-none-any.whl (65kB)
+Collecting pyasn1==0.4.5
+  Downloading https://files.pythonhosted.org/packages/7b/7c/c9386b82a25115cccf1903441bba3cbadcfae7b678a20167347fa8ded34c/pyasn1-0.4.5-py2.py3-none-any.whl (73kB)
+Collecting python-json-logger==0.1.9
+  Downloading https://files.pythonhosted.org/packages/3a/ed/2ba5a2dfce45fa67e0588dd6457b59ffdef7f1fdcd2c1152e085e3c9a726/python_json_logger-0.1.9-py2.py3-none-any.whl
+Collecting pytz==2018.9
+  Downloading https://files.pythonhosted.org/packages/61/28/1d3920e4d1d50b19bc5d24398a7cd85cc7b9a75a490570d5a30c57622d34/pytz-2018.9-py2.py3-none-any.whl (510kB)
+Collecting requests==2.21.0
+  Downloading https://files.pythonhosted.org/packages/7d/e3/20f3d364d6c8e5d2353c72a67778eb189176f08e873c9900e10c0287b84b/requests-2.21.0-py2.py3-none-any.whl (57kB)
+Collecting rsa==4.0
+  Downloading https://files.pythonhosted.org/packages/02/e5/38518af393f7c214357079ce67a317307936896e961e35450b70fad2a9cf/rsa-4.0-py2.py3-none-any.whl
+Collecting six==1.12.0
+  Downloading https://files.pythonhosted.org/packages/73/fb/00a976f728d0d1fecfe898238ce23f502a721c0ac0ecfedb80e0d88c64e9/six-1.12.0-py2.py3-none-any.whl
+Collecting uritemplate==3.0.0
+  Downloading https://files.pythonhosted.org/packages/e5/7d/9d5a640c4f8bf2c8b1afc015e9a9d8de32e13c9016dcc4b0ec03481fb396/uritemplate-3.0.0-py2.py3-none-any.whl
+Collecting urllib3==1.24.1
+  Downloading https://files.pythonhosted.org/packages/62/00/ee1d7de624db8ba7090d1226aebefab96a2c71cd5cfa7629d6ad3f61b79e/urllib3-1.24.1-py2.py3-none-any.whl (118kB)
+Requirement already satisfied: setuptools>=34.0.0 in /usr/local/lib/python3.7/site-packages (from google-api-core[grpc]==1.6.0->-r requirements.txt (line 10)) (44.0.0)
+Building wheels for collected packages: google-cloud-profiler, googleapis-common-protos, grpcio-health-checking, httplib2
+  Building wheel for google-cloud-profiler (setup.py): started
+  Building wheel for google-cloud-profiler (setup.py): finished with status 'done'
+  Created wheel for google-cloud-profiler: filename=google_cloud_profiler-1.0.8-cp37-cp37m-linux_x86_64.whl size=724294 sha256=2cad605ddb1c2fa93abdec06d3bffaa3fbad74ef036ce2612eb3ebc73961fcb9
+  Stored in directory: /root/.cache/pip/wheels/8a/83/af/b6a6b45a3c0a33a996a5433fb7daf0bf8b34be2504406901b8
+  Building wheel for googleapis-common-protos (setup.py): started
+  Building wheel for googleapis-common-protos (setup.py): finished with status 'done'
+  Created wheel for googleapis-common-protos: filename=googleapis_common_protos-1.5.5-cp37-none-any.whl size=69359 sha256=a76776c04b1705ba8cb5c65b5c4a50930dd62951d72ee716dae3b922962b5b6f
+  Stored in directory: /root/.cache/pip/wheels/22/57/2c/fdf1a5d9f14360bd1123c6dbac26eb784eba25223800239a69
+  Building wheel for grpcio-health-checking (setup.py): started
+  Building wheel for grpcio-health-checking (setup.py): finished with status 'done'
+  Created wheel for grpcio-health-checking: filename=grpcio_health_checking-1.12.1-cp37-none-any.whl size=5622 sha256=9f3921bc7f4b766d228062f05187130f2a75e7d54cf7483d64c0d8ff480f6cd3
+  Stored in directory: /root/.cache/pip/wheels/b2/6c/08/bec08cab70b75dd36b0412a070b13ad9a0d7f79a57b0d97925
+  Building wheel for httplib2 (setup.py): started
+  Building wheel for httplib2 (setup.py): finished with status 'done'
+  Created wheel for httplib2: filename=httplib2-0.12.1-cp37-none-any.whl size=93504 sha256=5aced3eb3e1ac0f986d49928527d1d80e80d2945174722b3a5c23b240f635f57
+  Stored in directory: /root/.cache/pip/wheels/98/82/0d/cfb126a5e40d487157e43fdb3332937713dde36b4d0e1e754d
+Successfully built google-cloud-profiler googleapis-common-protos grpcio-health-checking httplib2
+Installing collected packages: cachetools, certifi, chardet, six, protobuf, googleapis-common-protos, pyasn1, pyasn1-modules, rsa, google-auth, urllib3, idna, requests, pytz, grpcio, google-api-core, httplib2, google-auth-httplib2, uritemplate, google-api-python-client, google-cloud-core, google-cloud-profiler, google-cloud-trace, grpcio-health-checking, markupsafe, jinja2, opencensus, python-json-logger
+Successfully installed cachetools-3.0.0 certifi-2018.11.29 chardet-3.0.4 google-api-core-1.6.0 google-api-python-client-1.7.8 google-auth-1.6.2 google-auth-httplib2-0.0.3 google-cloud-core-0.29.1 google-cloud-profiler-1.0.8 google-cloud-trace-0.20.2 googleapis-common-protos-1.5.5 grpcio-1.16.1 grpcio-health-checking-1.12.1 httplib2-0.12.1 idna-2.8 jinja2-2.10 markupsafe-1.1.0 opencensus-0.1.10 protobuf-3.6.1 pyasn1-0.4.5 pyasn1-modules-0.2.3 python-json-logger-0.1.9 pytz-2018.9 requests-2.21.0 rsa-4.0 six-1.12.0 uritemplate-3.0.0 urllib3-1.24.1
+Removing intermediate container 921d54b6b3b8
+ ---> aca989852d8d
+Step 6/14 : FROM base as final
+ ---> 5b03cb8574a0
+Step 7/14 : ENV PYTHONUNBUFFERED=1
+ ---> Running in 9ca2b33554b0
+Removing intermediate container 9ca2b33554b0
+ ---> 04f8ba44b94d
+Step 8/14 : RUN apt-get -qq update     && apt-get install -y --no-install-recommends         wget
+ ---> Running in f71264f0bed1
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libpcre2-8-0 libpsl5
+Recommended packages:
+  publicsuffix
+The following NEW packages will be installed:
+  libpcre2-8-0 libpsl5 wget
+0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.
+Need to get 1168 kB of archives.
+After this operation, 4017 kB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian buster/main amd64 libpcre2-8-0 amd64 10.32-5 [213 kB]
+Get:2 http://deb.debian.org/debian buster/main amd64 libpsl5 amd64 0.20.2-2 [53.7 kB]
+Get:3 http://deb.debian.org/debian buster/main amd64 wget amd64 1.20.1-1.1 [902 kB]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 1168 kB in 0s (14.6 MB/s)
+Selecting previously unselected package libpcre2-8-0:amd64.
+(Reading database ... 6828 files and directories currently installed.)
+Preparing to unpack .../libpcre2-8-0_10.32-5_amd64.deb ...
+Unpacking libpcre2-8-0:amd64 (10.32-5) ...
+Selecting previously unselected package libpsl5:amd64.
+Preparing to unpack .../libpsl5_0.20.2-2_amd64.deb ...
+Unpacking libpsl5:amd64 (0.20.2-2) ...
+Selecting previously unselected package wget.
+Preparing to unpack .../wget_1.20.1-1.1_amd64.deb ...
+Unpacking wget (1.20.1-1.1) ...
+Setting up libpsl5:amd64 (0.20.2-2) ...
+Setting up libpcre2-8-0:amd64 (10.32-5) ...
+Setting up wget (1.20.1-1.1) ...
+Processing triggers for libc-bin (2.28-10) ...
+Removing intermediate container f71264f0bed1
+ ---> 18615a79edee
+Step 9/14 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Running in 072e416fc10c
+Removing intermediate container 072e416fc10c
+ ---> 4300ac9f0b51
+Step 10/14 : WORKDIR /email_server
+ ---> Running in ebdd67f9078a
+Removing intermediate container ebdd67f9078a
+ ---> 50a8c4f7fc12
+Step 11/14 : COPY --from=builder /usr/local/lib/python3.7/ /usr/local/lib/python3.7/
+ ---> b1b96e5f676c
+Step 12/14 : COPY . .
+ ---> 113ea8e9c111
+Step 13/14 : EXPOSE 8080
+ ---> Running in 1bdd8566e192
+Removing intermediate container 1bdd8566e192
+ ---> 88f0f46b5041
+Step 14/14 : ENTRYPOINT [ "python", "email_server.py" ]
+ ---> Running in 36835df7245f
+Removing intermediate container 36835df7245f
+ ---> 0c172b75ca86
+Successfully built 0c172b75ca86
+Successfully tagged emailservice:latest
+frontend
+Sending build context to Docker daemon  1.319MB
+Step 1/16 : FROM golang:1.12-alpine as builder
+ ---> 87a8d49e604a
+Step 2/16 : RUN apk add --no-cache ca-certificates git &&       wget -qO/go/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 &&       chmod +x /go/bin/dep
+ ---> Using cache
+ ---> 565b0547520f
+Step 3/16 : ENV PROJECT github.com/GoogleCloudPlatform/microservices-demo/src/frontend
+ ---> Running in 08b574ae8587
+Removing intermediate container 08b574ae8587
+ ---> d62bc4e1b3ef
+Step 4/16 : WORKDIR /go/src/$PROJECT
+ ---> Running in 72eca0ee24cf
+Removing intermediate container 72eca0ee24cf
+ ---> 1ba951f32071
+Step 5/16 : COPY Gopkg.* ./
+ ---> 991fce09c9a6
+Step 6/16 : RUN dep ensure --vendor-only -v
+ ---> Running in bc0503340021
+(1/22) Wrote github.com/pkg/errors@v0.8.1
+(2/22) Wrote github.com/sirupsen/logrus@v1.4.2
+(3/22) Wrote golang.org/x/oauth2@master
+(4/22) Wrote github.com/GoogleCloudPlatform/microservices-demo@v0.1.1
+(5/22) Wrote github.com/golang/protobuf@v1.3.1
+(6/22) Wrote golang.org/x/sys@master
+(7/22) Wrote golang.org/x/text@v0.3.2
+(8/22) Wrote golang.org/x/sync@master
+(9/22) Wrote go.opencensus.io@v0.16.0
+(10/22) Wrote cloud.google.com/go@v0.40.0
+(11/22) Wrote google.golang.org/grpc@v1.22.0
+(12/22) Wrote github.com/googleapis/gax-go@v2.0.5
+(13/22) Wrote contrib.go.opencensus.io/exporter/stackdriver@v0.5.0
+(14/22) Wrote golang.org/x/net@master
+(15/22) Wrote github.com/google/pprof@master
+(16/22) Wrote github.com/google/uuid@v1.1.1
+(17/22) Wrote github.com/gorilla/mux@v1.7.3
+(18/22) Wrote google.golang.org/appengine@v1.6.1
+(19/22) Wrote github.com/konsorten/go-windows-terminal-sequences@v1.0.2
+(20/22) Wrote git.apache.org/thrift.git (from github.com/apache/thrift)@master
+(21/22) Wrote google.golang.org/genproto@master
+(22/22) Wrote google.golang.org/api@master
+Removing intermediate container bc0503340021
+ ---> d4b3643611ed
+Step 7/16 : COPY . .
+ ---> c4faa0a3bf5c
+Step 8/16 : RUN go install .
+ ---> Running in 9cb0168c37f9
+Removing intermediate container 9cb0168c37f9
+ ---> 3dac0c78e690
+Step 9/16 : FROM alpine as release
+ ---> 961769676411
+Step 10/16 : RUN apk add --no-cache ca-certificates     busybox-extras net-tools bind-tools
+ ---> Running in b9e8cb7f8e46
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.10/main/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/v3.10/community/x86_64/APKINDEX.tar.gz
+(1/19) Installing libevent (2.1.10-r0)
+(2/19) Installing fstrm (0.5.0-r0)
+(3/19) Installing libgcc (8.3.0-r0)
+(4/19) Installing krb5-conf (1.0-r1)
+(5/19) Installing libcom_err (1.45.2-r1)
+(6/19) Installing keyutils-libs (1.6-r1)
+(7/19) Installing libverto (0.3.1-r0)
+(8/19) Installing krb5-libs (1.17-r0)
+(9/19) Installing json-c (0.13.1-r0)
+(10/19) Installing libstdc++ (8.3.0-r0)
+(11/19) Installing protobuf (3.6.1-r1)
+(12/19) Installing protobuf-c (1.3.0-r6)
+(13/19) Installing libxml2 (2.9.9-r3)
+(14/19) Installing bind-libs (9.14.8-r0)
+(15/19) Installing bind-tools (9.14.8-r0)
+(16/19) Installing busybox-extras (1.30.1-r3)
+Executing busybox-extras-1.30.1-r3.post-install
+(17/19) Installing ca-certificates (20190108-r0)
+(18/19) Installing mii-tool (1.60_git20140218-r2)
+(19/19) Installing net-tools (1.60_git20140218-r2)
+Executing busybox-1.30.1-r2.trigger
+Executing ca-certificates-20190108-r0.trigger
+OK: 20 MiB in 33 packages
+Removing intermediate container b9e8cb7f8e46
+ ---> 675767e719ff
+Step 11/16 : WORKDIR /frontend
+ ---> Running in cda2f3a4dd7a
+Removing intermediate container cda2f3a4dd7a
+ ---> b992cab414ee
+Step 12/16 : COPY --from=builder /go/bin/frontend /frontend/server
+ ---> ab292c667dca
+Step 13/16 : COPY ./templates ./templates
+ ---> a135e7d8dcc4
+Step 14/16 : COPY ./static ./static
+ ---> ddd7cfde49db
+Step 15/16 : EXPOSE 8080
+ ---> Running in 1f742df1c6ef
+Removing intermediate container 1f742df1c6ef
+ ---> 2c5205af26d8
+Step 16/16 : ENTRYPOINT ["/frontend/server"]
+ ---> Running in 081e789660b6
+Removing intermediate container 081e789660b6
+ ---> c558d6d46adf
+Successfully built c558d6d46adf
+Successfully tagged frontend:latest
+loadgenerator
+Sending build context to Docker daemon  9.728kB
+Step 1/11 : FROM python:3-slim as base
+3-slim: Pulling from library/python
+
+
+
+
+
+Digest: sha256:bca550637842e2f2bf0c5e1c3175ce685b5daabea9ca5de7b8f82cf18485ee34
+Status: Downloaded newer image for python:3-slim
+ ---> 3d8f801fc3db
+Step 2/11 : FROM base as builder
+ ---> 3d8f801fc3db
+Step 3/11 : RUN apt-get -qq update     && apt-get install -y --no-install-recommends         g++
+ ---> Running in d0c698ec68a3
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu cpp cpp-8 g++-8 gcc gcc-8
+  libasan5 libatomic1 libbinutils libc-dev-bin libc6-dev libcc1-0 libgcc-8-dev
+  libgomp1 libisl19 libitm1 liblsan0 libmpc3 libmpfr6 libmpx2 libquadmath0
+  libstdc++-8-dev libtsan0 libubsan1 linux-libc-dev
+Suggested packages:
+  binutils-doc cpp-doc gcc-8-locales g++-multilib g++-8-multilib gcc-8-doc
+  libstdc++6-8-dbg gcc-multilib make manpages-dev autoconf automake libtool
+  flex bison gdb gcc-doc gcc-8-multilib libgcc1-dbg libgomp1-dbg libitm1-dbg
+  libatomic1-dbg libasan5-dbg liblsan0-dbg libtsan0-dbg libubsan1-dbg
+  libmpx2-dbg libquadmath0-dbg glibc-doc libstdc++-8-doc
+Recommended packages:
+  manpages manpages-dev
+The following NEW packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu cpp cpp-8 g++ g++-8 gcc
+  gcc-8 libasan5 libatomic1 libbinutils libc-dev-bin libc6-dev libcc1-0
+  libgcc-8-dev libgomp1 libisl19 libitm1 liblsan0 libmpc3 libmpfr6 libmpx2
+  libquadmath0 libstdc++-8-dev libtsan0 libubsan1 linux-libc-dev
+0 upgraded, 28 newly installed, 0 to remove and 0 not upgraded.
+Need to get 43.2 MB of archives.
+After this operation, 175 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian buster/main amd64 binutils-common amd64 2.31.1-16 [2073 kB]
+Get:2 http://security.debian.org/debian-security buster/updates/main amd64 linux-libc-dev amd64 4.19.67-2+deb10u2 [1234 kB]
+Get:3 http://deb.debian.org/debian buster/main amd64 libbinutils amd64 2.31.1-16 [478 kB]
+Get:4 http://deb.debian.org/debian buster/main amd64 binutils-x86-64-linux-gnu amd64 2.31.1-16 [1823 kB]
+Get:5 http://deb.debian.org/debian buster/main amd64 binutils amd64 2.31.1-16 [56.8 kB]
+Get:6 http://deb.debian.org/debian buster/main amd64 libisl19 amd64 0.20-2 [587 kB]
+Get:7 http://deb.debian.org/debian buster/main amd64 libmpfr6 amd64 4.0.2-1 [775 kB]
+Get:8 http://deb.debian.org/debian buster/main amd64 libmpc3 amd64 1.1.0-1 [41.3 kB]
+Get:9 http://deb.debian.org/debian buster/main amd64 cpp-8 amd64 8.3.0-6 [8914 kB]
+Get:10 http://deb.debian.org/debian buster/main amd64 cpp amd64 4:8.3.0-1 [19.4 kB]
+Get:11 http://deb.debian.org/debian buster/main amd64 libcc1-0 amd64 8.3.0-6 [46.6 kB]
+Get:12 http://deb.debian.org/debian buster/main amd64 libgomp1 amd64 8.3.0-6 [75.8 kB]
+Get:13 http://deb.debian.org/debian buster/main amd64 libitm1 amd64 8.3.0-6 [27.7 kB]
+Get:14 http://deb.debian.org/debian buster/main amd64 libatomic1 amd64 8.3.0-6 [9032 B]
+Get:15 http://deb.debian.org/debian buster/main amd64 libasan5 amd64 8.3.0-6 [362 kB]
+Get:16 http://deb.debian.org/debian buster/main amd64 liblsan0 amd64 8.3.0-6 [131 kB]
+Get:17 http://deb.debian.org/debian buster/main amd64 libtsan0 amd64 8.3.0-6 [283 kB]
+Get:18 http://deb.debian.org/debian buster/main amd64 libubsan1 amd64 8.3.0-6 [120 kB]
+Get:19 http://deb.debian.org/debian buster/main amd64 libmpx2 amd64 8.3.0-6 [11.4 kB]
+Get:20 http://deb.debian.org/debian buster/main amd64 libquadmath0 amd64 8.3.0-6 [133 kB]
+Get:21 http://deb.debian.org/debian buster/main amd64 libgcc-8-dev amd64 8.3.0-6 [2298 kB]
+Get:22 http://deb.debian.org/debian buster/main amd64 gcc-8 amd64 8.3.0-6 [9452 kB]
+Get:23 http://deb.debian.org/debian buster/main amd64 gcc amd64 4:8.3.0-1 [5196 B]
+Get:24 http://deb.debian.org/debian buster/main amd64 libc-dev-bin amd64 2.28-10 [275 kB]
+Get:25 http://deb.debian.org/debian buster/main amd64 libc6-dev amd64 2.28-10 [2691 kB]
+Get:26 http://deb.debian.org/debian buster/main amd64 libstdc++-8-dev amd64 8.3.0-6 [1532 kB]
+Get:27 http://deb.debian.org/debian buster/main amd64 g++-8 amd64 8.3.0-6 [9752 kB]
+Get:28 http://deb.debian.org/debian buster/main amd64 g++ amd64 4:8.3.0-1 [1644 B]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 43.2 MB in 0s (91.2 MB/s)
+Selecting previously unselected package binutils-common:amd64.
+(Reading database ... 6828 files and directories currently installed.)
+Preparing to unpack .../00-binutils-common_2.31.1-16_amd64.deb ...
+Unpacking binutils-common:amd64 (2.31.1-16) ...
+Selecting previously unselected package libbinutils:amd64.
+Preparing to unpack .../01-libbinutils_2.31.1-16_amd64.deb ...
+Unpacking libbinutils:amd64 (2.31.1-16) ...
+Selecting previously unselected package binutils-x86-64-linux-gnu.
+Preparing to unpack .../02-binutils-x86-64-linux-gnu_2.31.1-16_amd64.deb ...
+Unpacking binutils-x86-64-linux-gnu (2.31.1-16) ...
+Selecting previously unselected package binutils.
+Preparing to unpack .../03-binutils_2.31.1-16_amd64.deb ...
+Unpacking binutils (2.31.1-16) ...
+Selecting previously unselected package libisl19:amd64.
+Preparing to unpack .../04-libisl19_0.20-2_amd64.deb ...
+Unpacking libisl19:amd64 (0.20-2) ...
+Selecting previously unselected package libmpfr6:amd64.
+Preparing to unpack .../05-libmpfr6_4.0.2-1_amd64.deb ...
+Unpacking libmpfr6:amd64 (4.0.2-1) ...
+Selecting previously unselected package libmpc3:amd64.
+Preparing to unpack .../06-libmpc3_1.1.0-1_amd64.deb ...
+Unpacking libmpc3:amd64 (1.1.0-1) ...
+Selecting previously unselected package cpp-8.
+Preparing to unpack .../07-cpp-8_8.3.0-6_amd64.deb ...
+Unpacking cpp-8 (8.3.0-6) ...
+Selecting previously unselected package cpp.
+Preparing to unpack .../08-cpp_4%3a8.3.0-1_amd64.deb ...
+Unpacking cpp (4:8.3.0-1) ...
+Selecting previously unselected package libcc1-0:amd64.
+Preparing to unpack .../09-libcc1-0_8.3.0-6_amd64.deb ...
+Unpacking libcc1-0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libgomp1:amd64.
+Preparing to unpack .../10-libgomp1_8.3.0-6_amd64.deb ...
+Unpacking libgomp1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libitm1:amd64.
+Preparing to unpack .../11-libitm1_8.3.0-6_amd64.deb ...
+Unpacking libitm1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libatomic1:amd64.
+Preparing to unpack .../12-libatomic1_8.3.0-6_amd64.deb ...
+Unpacking libatomic1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libasan5:amd64.
+Preparing to unpack .../13-libasan5_8.3.0-6_amd64.deb ...
+Unpacking libasan5:amd64 (8.3.0-6) ...
+Selecting previously unselected package liblsan0:amd64.
+Preparing to unpack .../14-liblsan0_8.3.0-6_amd64.deb ...
+Unpacking liblsan0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libtsan0:amd64.
+Preparing to unpack .../15-libtsan0_8.3.0-6_amd64.deb ...
+Unpacking libtsan0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libubsan1:amd64.
+Preparing to unpack .../16-libubsan1_8.3.0-6_amd64.deb ...
+Unpacking libubsan1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libmpx2:amd64.
+Preparing to unpack .../17-libmpx2_8.3.0-6_amd64.deb ...
+Unpacking libmpx2:amd64 (8.3.0-6) ...
+Selecting previously unselected package libquadmath0:amd64.
+Preparing to unpack .../18-libquadmath0_8.3.0-6_amd64.deb ...
+Unpacking libquadmath0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libgcc-8-dev:amd64.
+Preparing to unpack .../19-libgcc-8-dev_8.3.0-6_amd64.deb ...
+Unpacking libgcc-8-dev:amd64 (8.3.0-6) ...
+Selecting previously unselected package gcc-8.
+Preparing to unpack .../20-gcc-8_8.3.0-6_amd64.deb ...
+Unpacking gcc-8 (8.3.0-6) ...
+Selecting previously unselected package gcc.
+Preparing to unpack .../21-gcc_4%3a8.3.0-1_amd64.deb ...
+Unpacking gcc (4:8.3.0-1) ...
+Selecting previously unselected package libc-dev-bin.
+Preparing to unpack .../22-libc-dev-bin_2.28-10_amd64.deb ...
+Unpacking libc-dev-bin (2.28-10) ...
+Selecting previously unselected package linux-libc-dev:amd64.
+Preparing to unpack .../23-linux-libc-dev_4.19.67-2+deb10u2_amd64.deb ...
+Unpacking linux-libc-dev:amd64 (4.19.67-2+deb10u2) ...
+Selecting previously unselected package libc6-dev:amd64.
+Preparing to unpack .../24-libc6-dev_2.28-10_amd64.deb ...
+Unpacking libc6-dev:amd64 (2.28-10) ...
+Selecting previously unselected package libstdc++-8-dev:amd64.
+Preparing to unpack .../25-libstdc++-8-dev_8.3.0-6_amd64.deb ...
+Unpacking libstdc++-8-dev:amd64 (8.3.0-6) ...
+Selecting previously unselected package g++-8.
+Preparing to unpack .../26-g++-8_8.3.0-6_amd64.deb ...
+Unpacking g++-8 (8.3.0-6) ...
+Selecting previously unselected package g++.
+Preparing to unpack .../27-g++_4%3a8.3.0-1_amd64.deb ...
+Unpacking g++ (4:8.3.0-1) ...
+Setting up binutils-common:amd64 (2.31.1-16) ...
+Setting up linux-libc-dev:amd64 (4.19.67-2+deb10u2) ...
+Setting up libgomp1:amd64 (8.3.0-6) ...
+Setting up libasan5:amd64 (8.3.0-6) ...
+Setting up libmpfr6:amd64 (4.0.2-1) ...
+Setting up libquadmath0:amd64 (8.3.0-6) ...
+Setting up libmpc3:amd64 (1.1.0-1) ...
+Setting up libatomic1:amd64 (8.3.0-6) ...
+Setting up libmpx2:amd64 (8.3.0-6) ...
+Setting up libubsan1:amd64 (8.3.0-6) ...
+Setting up libisl19:amd64 (0.20-2) ...
+Setting up libbinutils:amd64 (2.31.1-16) ...
+Setting up cpp-8 (8.3.0-6) ...
+Setting up libc-dev-bin (2.28-10) ...
+Setting up libcc1-0:amd64 (8.3.0-6) ...
+Setting up liblsan0:amd64 (8.3.0-6) ...
+Setting up libitm1:amd64 (8.3.0-6) ...
+Setting up binutils-x86-64-linux-gnu (2.31.1-16) ...
+Setting up libtsan0:amd64 (8.3.0-6) ...
+Setting up binutils (2.31.1-16) ...
+Setting up libgcc-8-dev:amd64 (8.3.0-6) ...
+Setting up cpp (4:8.3.0-1) ...
+Setting up libc6-dev:amd64 (2.28-10) ...
+Setting up libstdc++-8-dev:amd64 (8.3.0-6) ...
+Setting up gcc-8 (8.3.0-6) ...
+Setting up gcc (4:8.3.0-1) ...
+Setting up g++-8 (8.3.0-6) ...
+Setting up g++ (4:8.3.0-1) ...
+update-alternatives: using /usr/bin/g++ to provide /usr/bin/c++ (c++) in auto mode
+Processing triggers for libc-bin (2.28-10) ...
+Removing intermediate container d0c698ec68a3
+ ---> 69589da86c55
+Step 4/11 : COPY requirements.txt .
+ ---> 74682d44db08
+Step 5/11 : RUN pip install --install-option="--prefix=/install" -r requirements.txt
+ ---> Running in 416782df5d2e
+Collecting certifi==2018.11.29
+  Downloading https://files.pythonhosted.org/packages/55/54/3ce77783acba5979ce16674fc98b1920d00b01d337cfaaf5db22543505ed/certifi-2018.11.29.tar.gz (153kB)
+Collecting chardet==3.0.4
+  Downloading https://files.pythonhosted.org/packages/fc/bb/a5768c230f9ddb03acc9ef3f0d4a3cf93462473795d18e9535498c8f929d/chardet-3.0.4.tar.gz (1.9MB)
+Collecting click==7.0
+  Downloading https://files.pythonhosted.org/packages/f8/5c/f60e9d8a1e77005f664b76ff8aeaee5bc05d0a91798afd7f53fc998dbc47/Click-7.0.tar.gz (286kB)
+Collecting flask==1.0.2
+  Downloading https://files.pythonhosted.org/packages/4b/12/c1fbf4971fda0e4de05565694c9f0c92646223cff53f15b6eb248a310a62/Flask-1.0.2.tar.gz (644kB)
+Collecting gevent==1.4.0
+  Downloading https://files.pythonhosted.org/packages/ed/27/6c49b70808f569b66ec7fac2e78f076e9b204db9cf5768740cff3d5a07ae/gevent-1.4.0.tar.gz (5.2MB)
+Collecting greenlet==0.4.15
+  Downloading https://files.pythonhosted.org/packages/f8/e8/b30ae23b45f69aa3f024b46064c0ac8e5fcb4f22ace0dca8d6f9c8bbe5e7/greenlet-0.4.15.tar.gz (59kB)
+Collecting idna==2.8
+  Downloading https://files.pythonhosted.org/packages/ad/13/eb56951b6f7950cadb579ca166e448ba77f9d24efc03edd7e55fa57d04b7/idna-2.8.tar.gz (174kB)
+Collecting itsdangerous==1.1.0
+  Downloading https://files.pythonhosted.org/packages/68/1a/f27de07a8a304ad5fa817bbe383d1238ac4396da447fa11ed937039fa04b/itsdangerous-1.1.0.tar.gz (53kB)
+Collecting jinja2==2.10
+  Downloading https://files.pythonhosted.org/packages/56/e6/332789f295cf22308386cf5bbd1f4e00ed11484299c5d7383378cf48ba47/Jinja2-2.10.tar.gz (261kB)
+Collecting locustio==0.8.1
+  Downloading https://files.pythonhosted.org/packages/04/11/dcc221efea4270fc0b9f7239c9af5654925f6225397a44ecb04a9b67a88e/locustio-0.8.1.tar.gz (222kB)
+Collecting markupsafe==1.1.0
+  Downloading https://files.pythonhosted.org/packages/ac/7e/1b4c2e05809a4414ebce0892fe1e32c14ace86ca7d50c70f00979ca9b3a3/MarkupSafe-1.1.0.tar.gz
+Collecting msgpack-python==0.5.6
+  Downloading https://files.pythonhosted.org/packages/8a/20/6eca772d1a5830336f84aca1d8198e5a3f4715cd1c7fc36d3cc7f7185091/msgpack-python-0.5.6.tar.gz (138kB)
+Collecting pyzmq==17.0.0
+  Downloading https://files.pythonhosted.org/packages/9f/f6/85a33a25128a4a812c3482547e3d458eebdb19ee0b4699f9199cdb2ad731/pyzmq-17.0.0.tar.gz (988kB)
+Collecting requests==2.21.0
+  Downloading https://files.pythonhosted.org/packages/52/2c/514e4ac25da2b08ca5a464c50463682126385c4272c18193876e91f4bc38/requests-2.21.0.tar.gz (111kB)
+Collecting six==1.12.0
+  Downloading https://files.pythonhosted.org/packages/dd/bf/4138e7bfb757de47d1f4b6994648ec67a51efe58fa907c1e11e350cddfca/six-1.12.0.tar.gz
+Collecting urllib3==1.24.1
+  Downloading https://files.pythonhosted.org/packages/b1/53/37d82ab391393565f2f831b8eedbffd57db5a718216f82f1a8b4d381a1c1/urllib3-1.24.1.tar.gz (229kB)
+Collecting werkzeug==0.14.1
+  Downloading https://files.pythonhosted.org/packages/9f/08/a3bb1c045ec602dc680906fc0261c267bed6b3bb4609430aff92c3888ec8/Werkzeug-0.14.1.tar.gz (1.2MB)
+Skipping wheel build for certifi, due to binaries being disabled for it.
+Skipping wheel build for chardet, due to binaries being disabled for it.
+Skipping wheel build for click, due to binaries being disabled for it.
+Skipping wheel build for flask, due to binaries being disabled for it.
+Skipping wheel build for gevent, due to binaries being disabled for it.
+Skipping wheel build for greenlet, due to binaries being disabled for it.
+Skipping wheel build for idna, due to binaries being disabled for it.
+Skipping wheel build for itsdangerous, due to binaries being disabled for it.
+Skipping wheel build for jinja2, due to binaries being disabled for it.
+Skipping wheel build for locustio, due to binaries being disabled for it.
+Skipping wheel build for markupsafe, due to binaries being disabled for it.
+Skipping wheel build for msgpack-python, due to binaries being disabled for it.
+Skipping wheel build for pyzmq, due to binaries being disabled for it.
+Skipping wheel build for requests, due to binaries being disabled for it.
+Skipping wheel build for six, due to binaries being disabled for it.
+Skipping wheel build for urllib3, due to binaries being disabled for it.
+Skipping wheel build for werkzeug, due to binaries being disabled for it.
+Installing collected packages: certifi, chardet, click, werkzeug, markupsafe, jinja2, itsdangerous, flask, greenlet, gevent, idna, urllib3, requests, msgpack-python, six, pyzmq, locustio
+    Running setup.py install for certifi: started
+    Running setup.py install for certifi: finished with status 'done'
+    Running setup.py install for chardet: started
+    Running setup.py install for chardet: finished with status 'done'
+    Running setup.py install for click: started
+    Running setup.py install for click: finished with status 'done'
+    Running setup.py install for werkzeug: started
+    Running setup.py install for werkzeug: finished with status 'done'
+    Running setup.py install for markupsafe: started
+    Running setup.py install for markupsafe: finished with status 'done'
+    Running setup.py install for jinja2: started
+    Running setup.py install for jinja2: finished with status 'done'
+    Running setup.py install for itsdangerous: started
+    Running setup.py install for itsdangerous: finished with status 'done'
+    Running setup.py install for flask: started
+    Running setup.py install for flask: finished with status 'done'
+    Running setup.py install for greenlet: started
+    Running setup.py install for greenlet: finished with status 'done'
+    Running setup.py install for gevent: started
+    Running setup.py install for gevent: still running...
+    Running setup.py install for gevent: finished with status 'done'
+    Running setup.py install for idna: started
+    Running setup.py install for idna: finished with status 'done'
+    Running setup.py install for urllib3: started
+    Running setup.py install for urllib3: finished with status 'done'
+    Running setup.py install for requests: started
+    Running setup.py install for requests: finished with status 'done'
+    Running setup.py install for msgpack-python: started
+    Running setup.py install for msgpack-python: finished with status 'done'
+    Running setup.py install for six: started
+    Running setup.py install for six: finished with status 'done'
+    Running setup.py install for pyzmq: started
+    Running setup.py install for pyzmq: finished with status 'done'
+    Running setup.py install for locustio: started
+    Running setup.py install for locustio: finished with status 'done'
+Successfully installed certifi chardet click flask gevent greenlet idna itsdangerous jinja2 locustio markupsafe msgpack-python pyzmq requests six urllib3 werkzeug
+/usr/local/lib/python3.8/site-packages/pip/_internal/commands/install.py:283: UserWarning: Disabling all use of wheels due to the use of --build-options / --global-options / --install-options.
+  cmdoptions.check_install_build_global(options)
+Removing intermediate container 416782df5d2e
+ ---> 3c5c87c3f1fd
+Step 6/11 : FROM base
+ ---> 3d8f801fc3db
+Step 7/11 : COPY --from=builder /install /usr/local
+ ---> cf1137e720fb
+Step 8/11 : COPY . .
+ ---> decb953e6043
+Step 9/11 : RUN chmod +x ./loadgen.sh
+ ---> Running in 387dd50823c6
+Removing intermediate container 387dd50823c6
+ ---> d64889ff8b26
+Step 10/11 : RUN apt-get -qq update     && apt-get install -y --no-install-recommends         curl
+ ---> Running in 2207548a375f
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libcurl4 libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3
+  libkrb5support0 libldap-2.4-2 libldap-common libnghttp2-14 libpsl5 librtmp1
+  libsasl2-2 libsasl2-modules-db libssh2-1
+Suggested packages:
+  krb5-doc krb5-user
+Recommended packages:
+  krb5-locales publicsuffix libsasl2-modules
+The following NEW packages will be installed:
+  curl libcurl4 libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3
+  libkrb5support0 libldap-2.4-2 libldap-common libnghttp2-14 libpsl5 librtmp1
+  libsasl2-2 libsasl2-modules-db libssh2-1
+0 upgraded, 15 newly installed, 0 to remove and 0 not upgraded.
+Need to get 2155 kB of archives.
+After this operation, 4940 kB of additional disk space will be used.
+Get:1 http://security.debian.org/debian-security buster/updates/main amd64 libsasl2-modules-db amd64 2.1.27+dfsg-1+deb10u1 [69.1 kB]
+Get:2 http://deb.debian.org/debian buster/main amd64 libkeyutils1 amd64 1.6-6 [15.0 kB]
+Get:3 http://security.debian.org/debian-security buster/updates/main amd64 libsasl2-2 amd64 2.1.27+dfsg-1+deb10u1 [106 kB]
+Get:4 http://deb.debian.org/debian buster/main amd64 libkrb5support0 amd64 1.17-3 [65.6 kB]
+Get:5 http://deb.debian.org/debian buster/main amd64 libk5crypto3 amd64 1.17-3 [121 kB]
+Get:6 http://deb.debian.org/debian buster/main amd64 libkrb5-3 amd64 1.17-3 [370 kB]
+Get:7 http://deb.debian.org/debian buster/main amd64 libgssapi-krb5-2 amd64 1.17-3 [158 kB]
+Get:8 http://deb.debian.org/debian buster/main amd64 libldap-common all 2.4.47+dfsg-3+deb10u1 [89.6 kB]
+Get:9 http://deb.debian.org/debian buster/main amd64 libldap-2.4-2 amd64 2.4.47+dfsg-3+deb10u1 [225 kB]
+Get:10 http://deb.debian.org/debian buster/main amd64 libnghttp2-14 amd64 1.36.0-2+deb10u1 [85.0 kB]
+Get:11 http://deb.debian.org/debian buster/main amd64 libpsl5 amd64 0.20.2-2 [53.7 kB]
+Get:12 http://deb.debian.org/debian buster/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2 [60.5 kB]
+Get:13 http://deb.debian.org/debian buster/main amd64 libssh2-1 amd64 1.8.0-2.1 [140 kB]
+Get:14 http://deb.debian.org/debian buster/main amd64 libcurl4 amd64 7.64.0-4 [332 kB]
+Get:15 http://deb.debian.org/debian buster/main amd64 curl amd64 7.64.0-4 [264 kB]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 2155 kB in 0s (21.6 MB/s)
+Selecting previously unselected package libsasl2-modules-db:amd64.
+(Reading database ... 6828 files and directories currently installed.)
+Preparing to unpack .../00-libsasl2-modules-db_2.1.27+dfsg-1+deb10u1_amd64.deb ...
+Unpacking libsasl2-modules-db:amd64 (2.1.27+dfsg-1+deb10u1) ...
+Selecting previously unselected package libsasl2-2:amd64.
+Preparing to unpack .../01-libsasl2-2_2.1.27+dfsg-1+deb10u1_amd64.deb ...
+Unpacking libsasl2-2:amd64 (2.1.27+dfsg-1+deb10u1) ...
+Selecting previously unselected package libkeyutils1:amd64.
+Preparing to unpack .../02-libkeyutils1_1.6-6_amd64.deb ...
+Unpacking libkeyutils1:amd64 (1.6-6) ...
+Selecting previously unselected package libkrb5support0:amd64.
+Preparing to unpack .../03-libkrb5support0_1.17-3_amd64.deb ...
+Unpacking libkrb5support0:amd64 (1.17-3) ...
+Selecting previously unselected package libk5crypto3:amd64.
+Preparing to unpack .../04-libk5crypto3_1.17-3_amd64.deb ...
+Unpacking libk5crypto3:amd64 (1.17-3) ...
+Selecting previously unselected package libkrb5-3:amd64.
+Preparing to unpack .../05-libkrb5-3_1.17-3_amd64.deb ...
+Unpacking libkrb5-3:amd64 (1.17-3) ...
+Selecting previously unselected package libgssapi-krb5-2:amd64.
+Preparing to unpack .../06-libgssapi-krb5-2_1.17-3_amd64.deb ...
+Unpacking libgssapi-krb5-2:amd64 (1.17-3) ...
+Selecting previously unselected package libldap-common.
+Preparing to unpack .../07-libldap-common_2.4.47+dfsg-3+deb10u1_all.deb ...
+Unpacking libldap-common (2.4.47+dfsg-3+deb10u1) ...
+Selecting previously unselected package libldap-2.4-2:amd64.
+Preparing to unpack .../08-libldap-2.4-2_2.4.47+dfsg-3+deb10u1_amd64.deb ...
+Unpacking libldap-2.4-2:amd64 (2.4.47+dfsg-3+deb10u1) ...
+Selecting previously unselected package libnghttp2-14:amd64.
+Preparing to unpack .../09-libnghttp2-14_1.36.0-2+deb10u1_amd64.deb ...
+Unpacking libnghttp2-14:amd64 (1.36.0-2+deb10u1) ...
+Selecting previously unselected package libpsl5:amd64.
+Preparing to unpack .../10-libpsl5_0.20.2-2_amd64.deb ...
+Unpacking libpsl5:amd64 (0.20.2-2) ...
+Selecting previously unselected package librtmp1:amd64.
+Preparing to unpack .../11-librtmp1_2.4+20151223.gitfa8646d.1-2_amd64.deb ...
+Unpacking librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2) ...
+Selecting previously unselected package libssh2-1:amd64.
+Preparing to unpack .../12-libssh2-1_1.8.0-2.1_amd64.deb ...
+Unpacking libssh2-1:amd64 (1.8.0-2.1) ...
+Selecting previously unselected package libcurl4:amd64.
+Preparing to unpack .../13-libcurl4_7.64.0-4_amd64.deb ...
+Unpacking libcurl4:amd64 (7.64.0-4) ...
+Selecting previously unselected package curl.
+Preparing to unpack .../14-curl_7.64.0-4_amd64.deb ...
+Unpacking curl (7.64.0-4) ...
+Setting up libkeyutils1:amd64 (1.6-6) ...
+Setting up libpsl5:amd64 (0.20.2-2) ...
+Setting up libnghttp2-14:amd64 (1.36.0-2+deb10u1) ...
+Setting up libldap-common (2.4.47+dfsg-3+deb10u1) ...
+Setting up libkrb5support0:amd64 (1.17-3) ...
+Setting up libsasl2-modules-db:amd64 (2.1.27+dfsg-1+deb10u1) ...
+Setting up librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2) ...
+Setting up libk5crypto3:amd64 (1.17-3) ...
+Setting up libsasl2-2:amd64 (2.1.27+dfsg-1+deb10u1) ...
+Setting up libssh2-1:amd64 (1.8.0-2.1) ...
+Setting up libkrb5-3:amd64 (1.17-3) ...
+Setting up libldap-2.4-2:amd64 (2.4.47+dfsg-3+deb10u1) ...
+Setting up libgssapi-krb5-2:amd64 (1.17-3) ...
+Setting up libcurl4:amd64 (7.64.0-4) ...
+Setting up curl (7.64.0-4) ...
+Processing triggers for libc-bin (2.28-10) ...
+Removing intermediate container 2207548a375f
+ ---> bb410bcb819c
+Step 11/11 : ENTRYPOINT ./loadgen.sh
+ ---> Running in fef72162967c
+Removing intermediate container fef72162967c
+ ---> 26ca2d5e52a9
+Successfully built 26ca2d5e52a9
+Successfully tagged loadgenerator:latest
+paymentservice
+Sending build context to Docker daemon  155.6kB
+Step 1/13 : FROM node:8-alpine as base
+ ---> 2b8fcdc6230a
+Step 2/13 : FROM base as builder
+ ---> 2b8fcdc6230a
+Step 3/13 : RUN apk add --update --no-cache     python     make     g++
+ ---> Using cache
+ ---> c8ff30b88b3f
+Step 4/13 : WORKDIR /usr/src/app
+ ---> Using cache
+ ---> f99a1c09e0c2
+Step 5/13 : COPY package*.json ./
+ ---> 19a17809e126
+Step 6/13 : RUN npm install --only=production
+ ---> Running in df1def7ffe68
+
+> pprof@1.1.0 install /usr/src/app/node_modules/pprof
+> node-pre-gyp install --fallback-to-build
+
+node-pre-gyp WARN Using needle for node-pre-gyp https download 
+[pprof] Success: "/usr/src/app/node_modules/pprof/build/node-v57-linux-x64-musl/pprof.node" is installed via remote
+
+> grpc@1.22.2 install /usr/src/app/node_modules/grpc
+> node-pre-gyp install --fallback-to-build --library=static_library
+
+node-pre-gyp WARN Using needle for node-pre-gyp https download 
+[grpc] Success: "/usr/src/app/node_modules/grpc/src/node/extension_binary/node-v57-linux-x64-musl/grpc_node.node" is installed via remote
+
+> protobufjs@6.8.6 postinstall /usr/src/app/node_modules/@grpc/proto-loader/node_modules/protobufjs
+> node scripts/postinstall
+
+
+> protobufjs@6.8.8 postinstall /usr/src/app/node_modules/protobufjs
+> node scripts/postinstall
+
+added 274 packages from 215 contributors and audited 1112 packages in 5.882s
+found 15 high severity vulnerabilities
+  run `npm audit fix` to fix them, or `npm audit` for details
+Removing intermediate container df1def7ffe68
+ ---> 707c660898e8
+Step 7/13 : FROM base
+ ---> 2b8fcdc6230a
+Step 8/13 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Using cache
+ ---> 8aba174284e6
+Step 9/13 : WORKDIR /usr/src/app
+ ---> Using cache
+ ---> 5273574c0311
+Step 10/13 : COPY --from=builder /usr/src/app/node_modules ./node_modules
+ ---> aedefc6ffbb4
+Step 11/13 : COPY . .
+ ---> 3d0b1c0a6d90
+Step 12/13 : EXPOSE 50051
+ ---> Running in 765574adaa46
+Removing intermediate container 765574adaa46
+ ---> 32b9e62cf647
+Step 13/13 : ENTRYPOINT [ "node", "index.js" ]
+ ---> Running in c29698e69690
+Removing intermediate container c29698e69690
+ ---> bf3c55e05e9a
+Successfully built bf3c55e05e9a
+Successfully tagged paymentservice:latest
+productcatalogservice
+Sending build context to Docker daemon  126.5kB
+Step 1/16 : FROM golang:1.12-alpine AS builder
+ ---> 87a8d49e604a
+Step 2/16 : RUN apk add --no-cache ca-certificates git &&       wget -qO/go/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 &&       chmod +x /go/bin/dep
+ ---> Using cache
+ ---> 565b0547520f
+Step 3/16 : ENV PROJECT github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice
+ ---> Running in 50c44838fa50
+Removing intermediate container 50c44838fa50
+ ---> 1604befdb877
+Step 4/16 : WORKDIR /go/src/$PROJECT
+ ---> Running in c8b0ef160fe2
+Removing intermediate container c8b0ef160fe2
+ ---> 9c26504f4ab8
+Step 5/16 : COPY Gopkg.* ./
+ ---> 3d5cd0d00771
+Step 6/16 : RUN dep ensure --vendor-only -v
+ ---> Running in d3287a9c5c46
+(1/20) Wrote github.com/google/pprof@master
+(2/20) Wrote github.com/konsorten/go-windows-terminal-sequences@v1.0.2
+(3/20) Wrote github.com/sirupsen/logrus@v1.4.2
+(4/20) Wrote google.golang.org/grpc@v1.22.0
+(5/20) Wrote github.com/GoogleCloudPlatform/microservices-demo@v0.1.1
+(6/20) Wrote contrib.go.opencensus.io/exporter/stackdriver@v0.5.0
+(7/20) Wrote github.com/google/go-cmp@v0.2.0
+(8/20) Wrote golang.org/x/net@master
+(9/20) Wrote github.com/googleapis/gax-go@v2.0.5
+(10/20) Wrote go.opencensus.io@v0.16.0
+(11/20) Wrote github.com/golang/protobuf@v1.3.1
+(12/20) Wrote golang.org/x/sync@master
+(13/20) Wrote cloud.google.com/go@v0.40.0
+(14/20) Wrote golang.org/x/oauth2@master
+(15/20) Wrote google.golang.org/appengine@v1.6.1
+(16/20) Wrote golang.org/x/sys@master
+(17/20) Wrote git.apache.org/thrift.git (from github.com/apache/thrift)@master
+(18/20) Wrote golang.org/x/text@v0.3.2
+(19/20) Wrote google.golang.org/genproto@master
+(20/20) Wrote google.golang.org/api@master
+Removing intermediate container d3287a9c5c46
+ ---> 44e2887faf0a
+Step 7/16 : COPY . .
+ ---> af8b18958de1
+Step 8/16 : RUN go build -o /productcatalogservice .
+ ---> Running in 4720ec549459
+Removing intermediate container 4720ec549459
+ ---> c76b83f14432
+Step 9/16 : FROM alpine AS release
+ ---> 961769676411
+Step 10/16 : RUN apk add --no-cache ca-certificates
+ ---> Using cache
+ ---> a4d865ebd5a4
+Step 11/16 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Using cache
+ ---> 356587025cca
+Step 12/16 : WORKDIR /productcatalogservice
+ ---> Running in 1a977eb8b622
+Removing intermediate container 1a977eb8b622
+ ---> 33852560d939
+Step 13/16 : COPY --from=builder /productcatalogservice ./server
+ ---> 441a726d0e1a
+Step 14/16 : COPY products.json .
+ ---> 2d2f65e5d037
+Step 15/16 : EXPOSE 3550
+ ---> Running in 04d402b35366
+Removing intermediate container 04d402b35366
+ ---> 9b02eab3d76b
+Step 16/16 : ENTRYPOINT ["/productcatalogservice/server"]
+ ---> Running in a3a62dcb55d8
+Removing intermediate container a3a62dcb55d8
+ ---> bc68dda43a12
+Successfully built bc68dda43a12
+Successfully tagged productcatalogservice:latest
+recommendationservice
+Sending build context to Docker daemon  99.84kB
+Step 1/11 : FROM python:2.7-slim
+2.7-slim: Pulling from library/python
+
+
+
+
+Digest: sha256:0090a4094cccb87222904541cb12159ccdd1899bcc35bd937162143210815550
+Status: Downloaded newer image for python:2.7-slim
+ ---> a3bbfb4d124b
+Step 2/11 : RUN apt-get update -qqy && 	apt-get -qqy install wget g++ && 	rm -rf /var/lib/apt/lists/*
+ ---> Running in d700d0bbd79c
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package manpages.
+(Reading database ... 6819 files and directories currently installed.)
+Preparing to unpack .../00-manpages_4.16-2_all.deb ...
+Unpacking manpages (4.16-2) ...
+Selecting previously unselected package libpcre2-8-0:amd64.
+Preparing to unpack .../01-libpcre2-8-0_10.32-5_amd64.deb ...
+Unpacking libpcre2-8-0:amd64 (10.32-5) ...
+Selecting previously unselected package libpsl5:amd64.
+Preparing to unpack .../02-libpsl5_0.20.2-2_amd64.deb ...
+Unpacking libpsl5:amd64 (0.20.2-2) ...
+Selecting previously unselected package wget.
+Preparing to unpack .../03-wget_1.20.1-1.1_amd64.deb ...
+Unpacking wget (1.20.1-1.1) ...
+Selecting previously unselected package binutils-common:amd64.
+Preparing to unpack .../04-binutils-common_2.31.1-16_amd64.deb ...
+Unpacking binutils-common:amd64 (2.31.1-16) ...
+Selecting previously unselected package libbinutils:amd64.
+Preparing to unpack .../05-libbinutils_2.31.1-16_amd64.deb ...
+Unpacking libbinutils:amd64 (2.31.1-16) ...
+Selecting previously unselected package binutils-x86-64-linux-gnu.
+Preparing to unpack .../06-binutils-x86-64-linux-gnu_2.31.1-16_amd64.deb ...
+Unpacking binutils-x86-64-linux-gnu (2.31.1-16) ...
+Selecting previously unselected package binutils.
+Preparing to unpack .../07-binutils_2.31.1-16_amd64.deb ...
+Unpacking binutils (2.31.1-16) ...
+Selecting previously unselected package libisl19:amd64.
+Preparing to unpack .../08-libisl19_0.20-2_amd64.deb ...
+Unpacking libisl19:amd64 (0.20-2) ...
+Selecting previously unselected package libmpfr6:amd64.
+Preparing to unpack .../09-libmpfr6_4.0.2-1_amd64.deb ...
+Unpacking libmpfr6:amd64 (4.0.2-1) ...
+Selecting previously unselected package libmpc3:amd64.
+Preparing to unpack .../10-libmpc3_1.1.0-1_amd64.deb ...
+Unpacking libmpc3:amd64 (1.1.0-1) ...
+Selecting previously unselected package cpp-8.
+Preparing to unpack .../11-cpp-8_8.3.0-6_amd64.deb ...
+Unpacking cpp-8 (8.3.0-6) ...
+Selecting previously unselected package cpp.
+Preparing to unpack .../12-cpp_4%3a8.3.0-1_amd64.deb ...
+Unpacking cpp (4:8.3.0-1) ...
+Selecting previously unselected package libcc1-0:amd64.
+Preparing to unpack .../13-libcc1-0_8.3.0-6_amd64.deb ...
+Unpacking libcc1-0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libgomp1:amd64.
+Preparing to unpack .../14-libgomp1_8.3.0-6_amd64.deb ...
+Unpacking libgomp1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libitm1:amd64.
+Preparing to unpack .../15-libitm1_8.3.0-6_amd64.deb ...
+Unpacking libitm1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libatomic1:amd64.
+Preparing to unpack .../16-libatomic1_8.3.0-6_amd64.deb ...
+Unpacking libatomic1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libasan5:amd64.
+Preparing to unpack .../17-libasan5_8.3.0-6_amd64.deb ...
+Unpacking libasan5:amd64 (8.3.0-6) ...
+Selecting previously unselected package liblsan0:amd64.
+Preparing to unpack .../18-liblsan0_8.3.0-6_amd64.deb ...
+Unpacking liblsan0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libtsan0:amd64.
+Preparing to unpack .../19-libtsan0_8.3.0-6_amd64.deb ...
+Unpacking libtsan0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libubsan1:amd64.
+Preparing to unpack .../20-libubsan1_8.3.0-6_amd64.deb ...
+Unpacking libubsan1:amd64 (8.3.0-6) ...
+Selecting previously unselected package libmpx2:amd64.
+Preparing to unpack .../21-libmpx2_8.3.0-6_amd64.deb ...
+Unpacking libmpx2:amd64 (8.3.0-6) ...
+Selecting previously unselected package libquadmath0:amd64.
+Preparing to unpack .../22-libquadmath0_8.3.0-6_amd64.deb ...
+Unpacking libquadmath0:amd64 (8.3.0-6) ...
+Selecting previously unselected package libgcc-8-dev:amd64.
+Preparing to unpack .../23-libgcc-8-dev_8.3.0-6_amd64.deb ...
+Unpacking libgcc-8-dev:amd64 (8.3.0-6) ...
+Selecting previously unselected package gcc-8.
+Preparing to unpack .../24-gcc-8_8.3.0-6_amd64.deb ...
+Unpacking gcc-8 (8.3.0-6) ...
+Selecting previously unselected package gcc.
+Preparing to unpack .../25-gcc_4%3a8.3.0-1_amd64.deb ...
+Unpacking gcc (4:8.3.0-1) ...
+Selecting previously unselected package libc-dev-bin.
+Preparing to unpack .../26-libc-dev-bin_2.28-10_amd64.deb ...
+Unpacking libc-dev-bin (2.28-10) ...
+Selecting previously unselected package linux-libc-dev:amd64.
+Preparing to unpack .../27-linux-libc-dev_4.19.67-2+deb10u2_amd64.deb ...
+Unpacking linux-libc-dev:amd64 (4.19.67-2+deb10u2) ...
+Selecting previously unselected package libc6-dev:amd64.
+Preparing to unpack .../28-libc6-dev_2.28-10_amd64.deb ...
+Unpacking libc6-dev:amd64 (2.28-10) ...
+Selecting previously unselected package libstdc++-8-dev:amd64.
+Preparing to unpack .../29-libstdc++-8-dev_8.3.0-6_amd64.deb ...
+Unpacking libstdc++-8-dev:amd64 (8.3.0-6) ...
+Selecting previously unselected package g++-8.
+Preparing to unpack .../30-g++-8_8.3.0-6_amd64.deb ...
+Unpacking g++-8 (8.3.0-6) ...
+Selecting previously unselected package g++.
+Preparing to unpack .../31-g++_4%3a8.3.0-1_amd64.deb ...
+Unpacking g++ (4:8.3.0-1) ...
+Selecting previously unselected package manpages-dev.
+Preparing to unpack .../32-manpages-dev_4.16-2_all.deb ...
+Unpacking manpages-dev (4.16-2) ...
+Selecting previously unselected package publicsuffix.
+Preparing to unpack .../33-publicsuffix_20190415.1030-1_all.deb ...
+Unpacking publicsuffix (20190415.1030-1) ...
+Setting up libpsl5:amd64 (0.20.2-2) ...
+Setting up manpages (4.16-2) ...
+Setting up binutils-common:amd64 (2.31.1-16) ...
+Setting up linux-libc-dev:amd64 (4.19.67-2+deb10u2) ...
+Setting up libgomp1:amd64 (8.3.0-6) ...
+Setting up libasan5:amd64 (8.3.0-6) ...
+Setting up libmpfr6:amd64 (4.0.2-1) ...
+Setting up libquadmath0:amd64 (8.3.0-6) ...
+Setting up libmpc3:amd64 (1.1.0-1) ...
+Setting up libatomic1:amd64 (8.3.0-6) ...
+Setting up libpcre2-8-0:amd64 (10.32-5) ...
+Setting up libmpx2:amd64 (8.3.0-6) ...
+Setting up libubsan1:amd64 (8.3.0-6) ...
+Setting up libisl19:amd64 (0.20-2) ...
+Setting up libbinutils:amd64 (2.31.1-16) ...
+Setting up cpp-8 (8.3.0-6) ...
+Setting up libc-dev-bin (2.28-10) ...
+Setting up publicsuffix (20190415.1030-1) ...
+Setting up libcc1-0:amd64 (8.3.0-6) ...
+Setting up liblsan0:amd64 (8.3.0-6) ...
+Setting up libitm1:amd64 (8.3.0-6) ...
+Setting up binutils-x86-64-linux-gnu (2.31.1-16) ...
+Setting up libtsan0:amd64 (8.3.0-6) ...
+Setting up manpages-dev (4.16-2) ...
+Setting up wget (1.20.1-1.1) ...
+Setting up binutils (2.31.1-16) ...
+Setting up libgcc-8-dev:amd64 (8.3.0-6) ...
+Setting up cpp (4:8.3.0-1) ...
+Setting up libc6-dev:amd64 (2.28-10) ...
+Setting up libstdc++-8-dev:amd64 (8.3.0-6) ...
+Setting up gcc-8 (8.3.0-6) ...
+Setting up gcc (4:8.3.0-1) ...
+Setting up g++-8 (8.3.0-6) ...
+Setting up g++ (4:8.3.0-1) ...
+update-alternatives: using /usr/bin/g++ to provide /usr/bin/c++ (c++) in auto mode
+Processing triggers for libc-bin (2.28-10) ...
+Removing intermediate container d700d0bbd79c
+ ---> f3687a02cc41
+Step 3/11 : ENV PYTHONUNBUFFERED=0
+ ---> Running in aee7ade329fb
+Removing intermediate container aee7ade329fb
+ ---> 2b27279191b6
+Step 4/11 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Running in 076a7f3b59bd
+Removing intermediate container 076a7f3b59bd
+ ---> 612b06ba42d5
+Step 5/11 : WORKDIR /recommendationservice
+ ---> Running in dd10ce459084
+Removing intermediate container dd10ce459084
+ ---> 66fa03212af3
+Step 6/11 : COPY requirements.txt requirements.txt
+ ---> d16ce9f4e70f
+Step 7/11 : RUN pip install -r requirements.txt
+ ---> Running in 1543cd1001a1
+DEPRECATION: Python 2.7 will reach the end of its life on January 1st, 2020. Please upgrade your Python as Python 2.7 won't be maintained after that date. A future version of pip will drop support for Python 2.7. More details about Python 2 support in pip, can be found at https://pip.pypa.io/en/latest/development/release-process/#python-2-support
+Collecting cachetools==3.1.0
+  Downloading https://files.pythonhosted.org/packages/39/2b/d87fc2369242bd743883232c463f28205902b8579cb68dcf5b11eee1652f/cachetools-3.1.0-py2.py3-none-any.whl
+Collecting certifi==2018.11.29
+  Downloading https://files.pythonhosted.org/packages/9f/e0/accfc1b56b57e9750eba272e24c4dddeac86852c2bebd1236674d7887e8a/certifi-2018.11.29-py2.py3-none-any.whl (154kB)
+Collecting chardet==3.0.4
+  Downloading https://files.pythonhosted.org/packages/bc/a9/01ffebfb562e4274b6487b4bb1ddec7ca55ec7510b22e4c51f14098443b8/chardet-3.0.4-py2.py3-none-any.whl (133kB)
+Collecting google-api-core[grpc]==1.6.0
+  Downloading https://files.pythonhosted.org/packages/39/1f/33ec7c4b68e8452a604f93571f53b74cbdd86c29e975d8c240efaa479950/google_api_core-1.6.0-py2.py3-none-any.whl (64kB)
+Collecting google-api-python-client==1.7.8
+  Downloading https://files.pythonhosted.org/packages/7a/84/ffde3c95d4162cdc8bae710fecc6873cccb05ac33afc3b2c925c74cc0150/google-api-python-client-1.7.8.tar.gz (141kB)
+Collecting google-auth-httplib2==0.0.3
+  Downloading https://files.pythonhosted.org/packages/33/49/c814d6d438b823441552198f096fcd0377fd6c88714dbed34f1d3c8c4389/google_auth_httplib2-0.0.3-py2.py3-none-any.whl
+Collecting google-auth==1.6.2
+  Downloading https://files.pythonhosted.org/packages/4e/85/71b2dfbf5b4241cd031cc333ed71f90a271074a97cb2c517bb65f07a1a90/google_auth-1.6.2-py2.py3-none-any.whl (73kB)
+Collecting google-cloud-core==0.29.1
+  Downloading https://files.pythonhosted.org/packages/0c/f2/3c225e7a69cb27d283b68bff867722bd066bc1858611180197f711815ea5/google_cloud_core-0.29.1-py2.py3-none-any.whl
+Collecting google-cloud-profiler==1.0.8
+  Downloading https://files.pythonhosted.org/packages/93/50/aa05109a907904865ec96ecb16faf5627d997f826b56926551be4919b4fc/google-cloud-profiler-1.0.8.tar.gz
+Collecting google-cloud-trace==0.20.2
+  Downloading https://files.pythonhosted.org/packages/1b/0d/9a5365def9350934f3f48e3028fe2ec22db3a2e7c547d548b20e7c9c62e4/google_cloud_trace-0.20.2-py2.py3-none-any.whl (61kB)
+Collecting google-python-cloud-debugger==2.9
+  Downloading https://files.pythonhosted.org/packages/6f/88/fa8fe7fae7c9c20ebaec98c813437f92d28344c7e83313accf0b0bcdaede/google_python_cloud_debugger-2.9-cp27-cp27mu-manylinux1_x86_64.whl (459kB)
+Collecting googleapis-common-protos==1.5.6
+  Downloading https://files.pythonhosted.org/packages/61/29/1549f61917eadd11650e42b78b4afcfe9cb467157af4510ab8cb59535f14/googleapis-common-protos-1.5.6.tar.gz
+Collecting grpcio-health-checking==1.13.0
+  Downloading https://files.pythonhosted.org/packages/93/09/b38fe533d166f80f149639f813b7fcb762de9f89e36deebbd76d6de1eca3/grpcio-health-checking-1.13.0.tar.gz
+Collecting grpcio==1.16.1
+  Downloading https://files.pythonhosted.org/packages/3c/4a/38e5d11ed0ce0a21067a6be0afb86ba2773e993aeaee12acd54227722f56/grpcio-1.16.1-cp27-cp27mu-manylinux1_x86_64.whl (9.6MB)
+Collecting httplib2==0.12.0
+  Downloading https://files.pythonhosted.org/packages/ce/ed/803905d670b52fa0edfdd135337e545b4496c2ab3a222f1449b7256eb99f/httplib2-0.12.0.tar.gz (218kB)
+Collecting idna==2.8
+  Downloading https://files.pythonhosted.org/packages/14/2c/cd551d81dbe15200be1cf41cd03869a46fe7226e7450af7a6545bfc474c9/idna-2.8-py2.py3-none-any.whl (58kB)
+Collecting opencensus[stackdriver]==0.1.10
+  Downloading https://files.pythonhosted.org/packages/1e/20/10cd833a76fa7bd1b0c73e81e8163adf184541945bb2b29f345ce0e2900e/opencensus-0.1.10-py2.py3-none-any.whl (185kB)
+Collecting protobuf==3.6.1
+  Downloading https://files.pythonhosted.org/packages/b8/c2/b7f587c0aaf8bf2201405e8162323037fe8d17aa21d3c7dda811b8d01469/protobuf-3.6.1-cp27-cp27mu-manylinux1_x86_64.whl (1.1MB)
+Collecting pyasn1-modules==0.2.4
+  Downloading https://files.pythonhosted.org/packages/da/98/8ddd9fa4d84065926832bcf2255a2b69f1d03330aa4d1c49cc7317ac888e/pyasn1_modules-0.2.4-py2.py3-none-any.whl (66kB)
+Collecting pyasn1==0.4.5
+  Downloading https://files.pythonhosted.org/packages/7b/7c/c9386b82a25115cccf1903441bba3cbadcfae7b678a20167347fa8ded34c/pyasn1-0.4.5-py2.py3-none-any.whl (73kB)
+Collecting python-json-logger==0.1.9
+  Downloading https://files.pythonhosted.org/packages/3a/ed/2ba5a2dfce45fa67e0588dd6457b59ffdef7f1fdcd2c1152e085e3c9a726/python_json_logger-0.1.9-py2.py3-none-any.whl
+Collecting pytz==2018.9
+  Downloading https://files.pythonhosted.org/packages/61/28/1d3920e4d1d50b19bc5d24398a7cd85cc7b9a75a490570d5a30c57622d34/pytz-2018.9-py2.py3-none-any.whl (510kB)
+Collecting pyyaml==3.13
+  Downloading https://files.pythonhosted.org/packages/9e/a3/1d13970c3f36777c583f136c136f804d70f500168edc1edea6daa7200769/PyYAML-3.13.tar.gz (270kB)
+Collecting requests==2.21.0
+  Downloading https://files.pythonhosted.org/packages/7d/e3/20f3d364d6c8e5d2353c72a67778eb189176f08e873c9900e10c0287b84b/requests-2.21.0-py2.py3-none-any.whl (57kB)
+Collecting rsa==4.0
+  Downloading https://files.pythonhosted.org/packages/02/e5/38518af393f7c214357079ce67a317307936896e961e35450b70fad2a9cf/rsa-4.0-py2.py3-none-any.whl
+Collecting six==1.12.0
+  Downloading https://files.pythonhosted.org/packages/73/fb/00a976f728d0d1fecfe898238ce23f502a721c0ac0ecfedb80e0d88c64e9/six-1.12.0-py2.py3-none-any.whl
+Collecting uritemplate==3.0.0
+  Downloading https://files.pythonhosted.org/packages/f6/25/66a49231b44409d7f07cfcf2506a8b070ce3c99fc47cc256bea833f24791/uritemplate-3.0.0-py2-none-any.whl
+Collecting urllib3==1.24.1
+  Downloading https://files.pythonhosted.org/packages/62/00/ee1d7de624db8ba7090d1226aebefab96a2c71cd5cfa7629d6ad3f61b79e/urllib3-1.24.1-py2.py3-none-any.whl (118kB)
+Collecting futures>=3.2.0; python_version < "3.2"
+  Downloading https://files.pythonhosted.org/packages/d8/a6/f46ae3f1da0cd4361c344888f59ec2f5785e69c872e175a748ef6071cdb5/futures-3.3.0-py2-none-any.whl
+Requirement already satisfied: setuptools>=34.0.0 in /usr/local/lib/python2.7/site-packages (from google-api-core[grpc]==1.6.0->-r requirements.txt (line 10)) (42.0.2)
+Collecting enum34>=1.0.4
+  Downloading https://files.pythonhosted.org/packages/c5/db/e56e6b4bbac7c4a06de1c50de6fe1ef3810018ae11732a50f15f62c7d050/enum34-1.1.6-py2-none-any.whl
+Building wheels for collected packages: google-api-python-client, google-cloud-profiler, googleapis-common-protos, grpcio-health-checking, httplib2, pyyaml
+  Building wheel for google-api-python-client (setup.py): started
+  Building wheel for google-api-python-client (setup.py): finished with status 'done'
+  Created wheel for google-api-python-client: filename=google_api_python_client-1.7.8-cp27-none-any.whl size=56508 sha256=ecab449161e0bad8093ea81eba6ce2a37185d4f92bc8e57e333e05e69170195a
+  Stored in directory: /root/.cache/pip/wheels/47/59/2a/99d7513987cb500f6efa2866caf027a1b69793156f5052bc64
+  Building wheel for google-cloud-profiler (setup.py): started
+  Building wheel for google-cloud-profiler (setup.py): finished with status 'done'
+  Created wheel for google-cloud-profiler: filename=google_cloud_profiler-1.0.8-cp27-cp27mu-linux_x86_64.whl size=718764 sha256=3fb874c3349339d0ce1c5ecfd711b3fd13dd9887964c3489b7a4eb2f20178196
+  Stored in directory: /root/.cache/pip/wheels/8a/83/af/b6a6b45a3c0a33a996a5433fb7daf0bf8b34be2504406901b8
+  Building wheel for googleapis-common-protos (setup.py): started
+  Building wheel for googleapis-common-protos (setup.py): finished with status 'done'
+  Created wheel for googleapis-common-protos: filename=googleapis_common_protos-1.5.6-cp27-none-any.whl size=69361 sha256=a28e1451979a86c5c087691f9880ae82552406fd40d5e169ebebd3510e22a2c1
+  Stored in directory: /root/.cache/pip/wheels/da/6b/81/8573adcbe2aa2ecba92c341dfe19c5b5a733f4514297ba52b4
+  Building wheel for grpcio-health-checking (setup.py): started
+  Building wheel for grpcio-health-checking (setup.py): finished with status 'done'
+  Created wheel for grpcio-health-checking: filename=grpcio_health_checking-1.13.0-cp27-none-any.whl size=5673 sha256=8f94cdaa2f3a27b35c1d6897a297c0aff64491c0017678189bad9a7793825c4d
+  Stored in directory: /root/.cache/pip/wheels/9a/f4/1a/4b8edf2dedb9d54b3c3b68aeff11537a1390ac272971002649
+  Building wheel for httplib2 (setup.py): started
+  Building wheel for httplib2 (setup.py): finished with status 'done'
+  Created wheel for httplib2: filename=httplib2-0.12.0-cp27-none-any.whl size=95043 sha256=8692d36821d89a49eea44ba94803109abb3aadb000a3b65e03ee3454cc902398
+  Stored in directory: /root/.cache/pip/wheels/6d/41/4b/2b369d6e2b7eaebcdd423516d3fb659c7658c16a2be8fd04ec
+  Building wheel for pyyaml (setup.py): started
+  Building wheel for pyyaml (setup.py): finished with status 'done'
+  Created wheel for pyyaml: filename=PyYAML-3.13-cp27-cp27mu-linux_x86_64.whl size=43810 sha256=f989928038b76b3e1c8d7997a0666eaedf5ed396f7bd20681898d7f04d549d35
+  Stored in directory: /root/.cache/pip/wheels/ad/da/0c/74eb680767247273e2cf2723482cb9c924fe70af57c334513f
+Successfully built google-api-python-client google-cloud-profiler googleapis-common-protos grpcio-health-checking httplib2 pyyaml
+Installing collected packages: cachetools, certifi, chardet, six, protobuf, futures, pyasn1, rsa, pyasn1-modules, google-auth, idna, urllib3, requests, googleapis-common-protos, pytz, enum34, grpcio, google-api-core, httplib2, google-auth-httplib2, uritemplate, google-api-python-client, google-cloud-core, google-cloud-profiler, google-cloud-trace, pyyaml, google-python-cloud-debugger, grpcio-health-checking, opencensus, python-json-logger
+Successfully installed cachetools-3.1.0 certifi-2018.11.29 chardet-3.0.4 enum34-1.1.6 futures-3.3.0 google-api-core-1.6.0 google-api-python-client-1.7.8 google-auth-1.6.2 google-auth-httplib2-0.0.3 google-cloud-core-0.29.1 google-cloud-profiler-1.0.8 google-cloud-trace-0.20.2 google-python-cloud-debugger-2.9 googleapis-common-protos-1.5.6 grpcio-1.16.1 grpcio-health-checking-1.13.0 httplib2-0.12.0 idna-2.8 opencensus-0.1.10 protobuf-3.6.1 pyasn1-0.4.5 pyasn1-modules-0.2.4 python-json-logger-0.1.9 pytz-2018.9 pyyaml-3.13 requests-2.21.0 rsa-4.0 six-1.12.0 uritemplate-3.0.0 urllib3-1.24.1
+Removing intermediate container 1543cd1001a1
+ ---> 0a52a9774713
+Step 8/11 : COPY . .
+ ---> 2d0334b54152
+Step 9/11 : ENV PORT "8080"
+ ---> Running in 3f223c7101d1
+Removing intermediate container 3f223c7101d1
+ ---> b8f0e7e68430
+Step 10/11 : EXPOSE 8080
+ ---> Running in ddb16be3fedd
+Removing intermediate container ddb16be3fedd
+ ---> a0e9e8f4c27f
+Step 11/11 : ENTRYPOINT ["python", "/recommendationservice/recommendation_server.py"]
+ ---> Running in 1caedf6a010b
+Removing intermediate container 1caedf6a010b
+ ---> 662c3ecb94ae
+Successfully built 662c3ecb94ae
+Successfully tagged recommendationservice:latest
+shippingservice
+Sending build context to Docker daemon  123.9kB
+Step 1/15 : FROM golang:1.12-alpine as builder
+ ---> 87a8d49e604a
+Step 2/15 : RUN apk add --no-cache ca-certificates git &&       wget -qO/go/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 &&       chmod +x /go/bin/dep
+ ---> Using cache
+ ---> 565b0547520f
+Step 3/15 : ENV PROJECT github.com/GoogleCloudPlatform/microservices-demo/src/shippingservice
+ ---> Running in 26e8167bf818
+Removing intermediate container 26e8167bf818
+ ---> 3041cef9aad7
+Step 4/15 : WORKDIR /go/src/$PROJECT
+ ---> Running in 1cec27b38da5
+Removing intermediate container 1cec27b38da5
+ ---> 262b66851242
+Step 5/15 : COPY Gopkg.* ./
+ ---> 7d56df325ffc
+Step 6/15 : RUN dep ensure --vendor-only -v
+ ---> Running in 5fe365f889c7
+(1/19) Wrote github.com/konsorten/go-windows-terminal-sequences@v1.0.2
+(2/19) Wrote golang.org/x/sync@master
+(3/19) Wrote cloud.google.com/go@v0.40.0
+(4/19) Wrote golang.org/x/sys@master
+(5/19) Wrote contrib.go.opencensus.io/exporter/stackdriver@v0.5.0
+(6/19) Wrote github.com/googleapis/gax-go@v2.0.5
+(7/19) Wrote golang.org/x/text@v0.3.2
+(8/19) Wrote github.com/golang/protobuf@v1.3.1
+(9/19) Wrote go.opencensus.io@v0.16.0
+(10/19) Wrote github.com/google/pprof@master
+(11/19) Wrote github.com/sirupsen/logrus@v1.4.2
+(12/19) Wrote github.com/GoogleCloudPlatform/microservices-demo@v0.1.1
+(13/19) Wrote golang.org/x/oauth2@master
+(14/19) Wrote golang.org/x/net@master
+(15/19) Wrote google.golang.org/appengine@v1.6.1
+(16/19) Wrote git.apache.org/thrift.git (from github.com/apache/thrift)@master
+(17/19) Wrote google.golang.org/genproto@master
+(18/19) Wrote google.golang.org/grpc@v1.22.0
+(19/19) Wrote google.golang.org/api@master
+Removing intermediate container 5fe365f889c7
+ ---> a61571792c12
+Step 7/15 : COPY . .
+ ---> 2db36d4be8f4
+Step 8/15 : RUN go install .
+ ---> Running in 5ad84e7b1efa
+Removing intermediate container 5ad84e7b1efa
+ ---> b8acba72fb72
+Step 9/15 : FROM alpine as release
+ ---> 961769676411
+Step 10/15 : RUN apk add --no-cache ca-certificates
+ ---> Using cache
+ ---> a4d865ebd5a4
+Step 11/15 : RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 &&     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 &&     chmod +x /bin/grpc_health_probe
+ ---> Using cache
+ ---> 356587025cca
+Step 12/15 : COPY --from=builder /go/bin/shippingservice /shippingservice
+ ---> bf2ed09b65ea
+Step 13/15 : ENV APP_PORT=50051
+ ---> Running in 1b5ceb1d7d1e
+Removing intermediate container 1b5ceb1d7d1e
+ ---> 89a1f2e59905
+Step 14/15 : EXPOSE 50051
+ ---> Running in 3f37c8a1ca98
+Removing intermediate container 3f37c8a1ca98
+ ---> 77870b0f66d8
+Step 15/15 : ENTRYPOINT ["/shippingservice"]
+ ---> Running in d1b1b53f6cf3
+Removing intermediate container d1b1b53f6cf3
+ ---> 10dce4886ce8
+Successfully built 10dce4886ce8
+Successfully tagged shippingservice:latest
+/chromium/microservices-demo/src$ for df in */Dockerfile; do n=${df%/*}; echo $n; docker push gcr.io/mattcary-hackathon/${n}:1.0.0; done
+adservice
+The push refers to repository [gcr.io/mattcary-hackathon/adservice]
+
+
+
+
+
+
+
+
+
+1.0.0: digest: sha256:9a42aa42a4c322f2fd44a0f807fd9e7a1c69fb3b084dc5fec41e8304583f1cfd size: 2211
+cartservice
+The push refers to repository [gcr.io/mattcary-hackathon/cartservice]
+
+
+
+
+
+1.0.0: digest: sha256:e32a50dfc2219c21fd561af57e3ee0f8061f61905675bf14740035edf5ab23fd size: 1370
+checkoutservice
+The push refers to repository [gcr.io/mattcary-hackathon/checkoutservice]
+
+
+
+
+1.0.0: digest: sha256:64b8b803b2c027a723c1097adfaf421bac6a8beca538a0a7b0a2059674fcb973 size: 1160
+currencyservice
+The push refers to repository [gcr.io/mattcary-hackathon/currencyservice]
+
+
+
+
+
+
+
+
+1.0.0: digest: sha256:508c19c58c2cf372aa5541a68f866912163c668d0295108c7e3eb596902a08cf size: 1997
+emailservice
+The push refers to repository [gcr.io/mattcary-hackathon/emailservice]
+
+
+
+
+
+
+
+
+
+
+1.0.0: digest: sha256:6b184504942d61df63b8606ec354a92f0881d8ae82db0eeafa5875618e83e921 size: 2422
+frontend
+The push refers to repository [gcr.io/mattcary-hackathon/frontend]
+
+
+
+
+
+
+1.0.0: digest: sha256:88db6651ec89ee6a040e5ce95b283ddc299e20ba2f98dbbbd14a3e0d3893a222 size: 1576
+loadgenerator
+The push refers to repository [gcr.io/mattcary-hackathon/loadgenerator]
+
+
+
+
+
+
+
+
+
+1.0.0: digest: sha256:15ec665721c1d0044077e880d45a3d5bc5b193fff3dcd275ca9d875d340b2f9c size: 2209
+paymentservice
+The push refers to repository [gcr.io/mattcary-hackathon/paymentservice]
+
+
+
+
+
+
+
+
+1.0.0: digest: sha256:4bff8bf59876cb467cc1c9311d2a445b4b3670e0ee06f715090bb2e477821ad2 size: 1997
+productcatalogservice
+The push refers to repository [gcr.io/mattcary-hackathon/productcatalogservice]
+
+
+
+
+
+
+1.0.0: digest: sha256:319b732d31ed25fa72a661f63d7e077ea1d838a75319c526fecd34ce01df5442 size: 1575
+recommendationservice
+The push refers to repository [gcr.io/mattcary-hackathon/recommendationservice]
+
+
+
+
+
+
+
+
+
+
+1.0.0: digest: sha256:34671910d810ed276943087f530d6d35fb77b28f5ea7a82ac526090eb8bce5c9 size: 2422
+shippingservice
+The push refers to repository [gcr.io/mattcary-hackathon/shippingservice]
+
+
+
+
+1.0.0: digest: sha256:969c78cf0dc671df5f1e7803af49bebc0d37e7f208a1c70ec3a7b43257bd3248 size: 1160
+/chromium/microservices-demo/src$ cd ..
+/chromium/microservices-demo$ for f in kubernetes-manifests/*.yaml; do sed -i 's|image: \([^:]*\)$|image: gcr.io/mattcary-hackathon/\1:1.0.0|' $f; done
+/chromium/microservices-demo$ git diff kubernetes-manifests/
+diff --git a/kubernetes-manifests/adservice.yaml b/kubernetes-manifests/adservice.yaml
+index 713ebcd..bdfa6b4 100644
+--- a/kubernetes-manifests/adservice.yaml
++++ b/kubernetes-manifests/adservice.yaml
+@@ -28,7 +28,7 @@ spec:
+       terminationGracePeriodSeconds: 5
+       containers:
+       - name: server
+-        image: adservice
++        image: gcr.io/mattcary-hackathon/adservice:1.0.0
+         ports:
+         - containerPort: 9555
+         env:
+diff --git a/kubernetes-manifests/cartservice.yaml b/kubernetes-manifests/cartservice.yaml
+index 31175da..c3d30bc 100644
+--- a/kubernetes-manifests/cartservice.yaml
++++ b/kubernetes-manifests/cartservice.yaml
+@@ -28,7 +28,7 @@ spec:
+       terminationGracePeriodSeconds: 5
+       containers:
+       - name: server
+-        image: cartservice
++        image: gcr.io/mattcary-hackathon/cartservice:1.0.0
+         ports:
+         - containerPort: 7070
+         env:
+diff --git a/kubernetes-manifests/checkoutservice.yaml b/kubernetes-manifests/checkoutservice.yaml
+index 501210a..973afab 100644
+--- a/kubernetes-manifests/checkoutservice.yaml
++++ b/kubernetes-manifests/checkoutservice.yaml
+@@ -27,7 +27,7 @@ spec:
+     spec:
+       containers:
+         - name: server
+-          image: checkoutservice
++          image: gcr.io/mattcary-hackathon/checkoutservice:1.0.0
+           ports:
+           - containerPort: 5050
+           readinessProbe:
+diff --git a/kubernetes-manifests/currencyservice.yaml b/kubernetes-manifests/currencyservice.yaml
+index 6d1b21a..054684c 100644
+--- a/kubernetes-manifests/currencyservice.yaml
++++ b/kubernetes-manifests/currencyservice.yaml
+@@ -28,7 +28,7 @@ spec:
+       terminationGracePeriodSeconds: 5
+       containers:
+       - name: server
+-        image: currencyservice
++        image: gcr.io/mattcary-hackathon/currencyservice:1.0.0
+         ports:
+         - name: grpc
+           containerPort: 7000
+diff --git a/kubernetes-manifests/emailservice.yaml b/kubernetes-manifests/emailservice.yaml
+index 14d293b..0bb4226 100644
+--- a/kubernetes-manifests/emailservice.yaml
++++ b/kubernetes-manifests/emailservice.yaml
+@@ -28,7 +28,7 @@ spec:
+       terminationGracePeriodSeconds: 5
+       containers:
+       - name: server
+-        image: emailservice
++        image: gcr.io/mattcary-hackathon/emailservice:1.0.0
+         ports:
+         - containerPort: 8080
+         env:
+diff --git a/kubernetes-manifests/frontend.yaml b/kubernetes-manifests/frontend.yaml
+index e6a0607..5a7df04 100644
+--- a/kubernetes-manifests/frontend.yaml
++++ b/kubernetes-manifests/frontend.yaml
+@@ -29,7 +29,7 @@ spec:
+     spec:
+       containers:
+         - name: server
+-          image: frontend
++          image: gcr.io/mattcary-hackathon/frontend:1.0.0
+           ports:
+           - containerPort: 8080
+           readinessProbe:
+diff --git a/kubernetes-manifests/loadgenerator.yaml b/kubernetes-manifests/loadgenerator.yaml
+index 53e947e..2e8c8a4 100644
+--- a/kubernetes-manifests/loadgenerator.yaml
++++ b/kubernetes-manifests/loadgenerator.yaml
+@@ -31,7 +31,7 @@ spec:
+       restartPolicy: Always
+       containers:
+       - name: main
+-        image: loadgenerator
++        image: gcr.io/mattcary-hackathon/loadgenerator:1.0.0
+         env:
+         - name: FRONTEND_ADDR
+           value: "frontend:80"
+diff --git a/kubernetes-manifests/paymentservice.yaml b/kubernetes-manifests/paymentservice.yaml
+index fa62c08..41b8697 100644
+--- a/kubernetes-manifests/paymentservice.yaml
++++ b/kubernetes-manifests/paymentservice.yaml
+@@ -28,7 +28,7 @@ spec:
+       terminationGracePeriodSeconds: 5
+       containers:
+       - name: server
+-        image: paymentservice
++        image: gcr.io/mattcary-hackathon/paymentservice:1.0.0
+         ports:
+         - containerPort: 50051
+         env:
+diff --git a/kubernetes-manifests/productcatalogservice.yaml b/kubernetes-manifests/productcatalogservice.yaml
+index b175856..dba7264 100644
+--- a/kubernetes-manifests/productcatalogservice.yaml
++++ b/kubernetes-manifests/productcatalogservice.yaml
+@@ -28,7 +28,7 @@ spec:
+       terminationGracePeriodSeconds: 5
+       containers:
+       - name: server
+-        image: productcatalogservice
++        image: gcr.io/mattcary-hackathon/productcatalogservice:1.0.0
+         ports:
+         - containerPort: 3550
+         env:
+diff --git a/kubernetes-manifests/recommendationservice.yaml b/kubernetes-manifests/recommendationservice.yaml
+index 1ccc4ab..742da6d 100644
+--- a/kubernetes-manifests/recommendationservice.yaml
++++ b/kubernetes-manifests/recommendationservice.yaml
+@@ -28,7 +28,7 @@ spec:
+       terminationGracePeriodSeconds: 5
+       containers:
+       - name: server
+-        image: recommendationservice
++        image: gcr.io/mattcary-hackathon/recommendationservice:1.0.0
+         ports:
+         - containerPort: 8080
+         readinessProbe:
+diff --git a/kubernetes-manifests/shippingservice.yaml b/kubernetes-manifests/shippingservice.yaml
+index d4049ad..15ee0f5 100644
+--- a/kubernetes-manifests/shippingservice.yaml
++++ b/kubernetes-manifests/shippingservice.yaml
+@@ -27,7 +27,7 @@ spec:
+     spec:
+       containers:
+       - name: server
+-        image: shippingservice
++        image: gcr.io/mattcary-hackathon/shippingservice:1.0.0
+         ports:
+         - containerPort: 50051
+         env:
+/chromium/microservices-demo$ for f in kubernetes-manifests/*.yaml; do echo $f; kubectl apply -f $f; done
+kubernetes-manifests/adservice.yaml
+deployment.apps/adservice created
+service/adservice created
+kubernetes-manifests/cartservice.yaml
+deployment.apps/cartservice created
+service/cartservice created
+kubernetes-manifests/checkoutservice.yaml
+deployment.apps/checkoutservice created
+service/checkoutservice created
+kubernetes-manifests/currencyservice.yaml
+deployment.apps/currencyservice created
+service/currencyservice created
+kubernetes-manifests/emailservice.yaml
+deployment.apps/emailservice unchanged
+service/emailservice unchanged
+kubernetes-manifests/frontend.yaml
+deployment.apps/frontend created
+service/frontend created
+service/frontend-external created
+kubernetes-manifests/loadgenerator.yaml
+deployment.apps/loadgenerator created
+kubernetes-manifests/paymentservice.yaml
+deployment.apps/paymentservice created
+service/paymentservice created
+kubernetes-manifests/productcatalogservice.yaml
+deployment.apps/productcatalogservice created
+service/productcatalogservice created
+kubernetes-manifests/recommendationservice.yaml
+deployment.apps/recommendationservice created
+service/recommendationservice created
+kubernetes-manifests/redis.yaml
+deployment.apps/redis-cart created
+service/redis-cart created
+kubernetes-manifests/shippingservice.yaml
+deployment.apps/shippingservice created
+service/shippingservice created
+/chromium/microservices-demo$ kubectl get all
+NAME                                         READY   STATUS              RESTARTS   AGE
+pod/adservice-7dfb7f6b4f-jjm4r               0/1     Running             0          20s
+pod/cartservice-7d5b488dd-l4tkh              0/1     ContainerCreating   0          20s
+pod/checkoutservice-7d75495f69-clxns         1/1     Running             0          19s
+pod/currencyservice-84767447fc-rc8p4         0/1     Running             0          18s
+pod/emailservice-694b6f4b57-mlmkq            1/1     Running             0          62s
+pod/frontend-56f5cbf975-kz6j6                0/1     Running             0          17s
+pod/loadgenerator-85459d6b45-qmvnt           0/1     ContainerCreating   0          16s
+pod/paymentservice-66bf9c8f55-9d9pj          0/1     Running             0          16s
+pod/productcatalogservice-5548bb8bc7-s2mnx   0/1     ContainerCreating   0          15s
+pod/recommendationservice-5f695c76f-5v7rr    0/1     ContainerCreating   0          14s
+pod/redis-cart-65bf66b8fd-mh87f              0/1     ContainerCreating   0          14s
+pod/shippingservice-676cc7765c-854dh         0/1     Pending             0          13s
+
+NAME                            TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+service/adservice               ClusterIP      10.39.255.70    <none>        9555/TCP       20s
+service/cartservice             ClusterIP      10.39.247.253   <none>        7070/TCP       19s
+service/checkoutservice         ClusterIP      10.39.241.53    <none>        5050/TCP       19s
+service/currencyservice         ClusterIP      10.39.241.190   <none>        7000/TCP       18s
+service/emailservice            ClusterIP      10.39.245.161   <none>        5000/TCP       62s
+service/frontend                ClusterIP      10.39.242.66    <none>        80/TCP         17s
+service/frontend-external       LoadBalancer   10.39.251.47    <pending>     80:30154/TCP   17s
+service/kubernetes              ClusterIP      10.39.240.1     <none>        443/TCP        34m
+service/paymentservice          ClusterIP      10.39.253.228   <none>        50051/TCP      16s
+service/productcatalogservice   ClusterIP      10.39.249.180   <none>        3550/TCP       15s
+service/recommendationservice   ClusterIP      10.39.246.201   <none>        8080/TCP       14s
+service/redis-cart              ClusterIP      10.39.249.15    <none>        6379/TCP       14s
+service/shippingservice         ClusterIP      10.39.242.166   <none>        50051/TCP      13s
+
+NAME                                    READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/adservice               0/1     1            0           20s
+deployment.apps/cartservice             0/1     1            0           20s
+deployment.apps/checkoutservice         1/1     1            1           19s
+deployment.apps/currencyservice         0/1     1            0           18s
+deployment.apps/emailservice            1/1     1            1           62s
+deployment.apps/frontend                0/1     1            0           17s
+deployment.apps/loadgenerator           0/1     1            0           16s
+deployment.apps/paymentservice          0/1     1            0           16s
+deployment.apps/productcatalogservice   0/1     1            0           15s
+deployment.apps/recommendationservice   0/1     1            0           15s
+deployment.apps/redis-cart              0/1     1            0           14s
+deployment.apps/shippingservice         0/1     1            0           13s
+
+NAME                                               DESIRED   CURRENT   READY   AGE
+replicaset.apps/adservice-7dfb7f6b4f               1         1         0       20s
+replicaset.apps/cartservice-7d5b488dd              1         1         0       20s
+replicaset.apps/checkoutservice-7d75495f69         1         1         1       19s
+replicaset.apps/currencyservice-84767447fc         1         1         0       18s
+replicaset.apps/emailservice-694b6f4b57            1         1         1       62s
+replicaset.apps/frontend-56f5cbf975                1         1         0       17s
+replicaset.apps/loadgenerator-85459d6b45           1         1         0       16s
+replicaset.apps/paymentservice-66bf9c8f55          1         1         0       16s
+replicaset.apps/productcatalogservice-5548bb8bc7   1         1         0       15s
+replicaset.apps/recommendationservice-5f695c76f    1         1         0       15s
+replicaset.apps/redis-cart-65bf66b8fd              1         1         0       14s
+replicaset.apps/shippingservice-676cc7765c         1         1         0       13s
+/chromium/microservices-demo$ kubectl get svc frontend-external
+NAME                TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE
+frontend-external   LoadBalancer   10.39.251.47   34.69.253.246   80:30154/TCP   77s
+/chromium/microservices-demo$ curl 34.69.253.246 | head
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+
+    
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Hipster Shop</title>
+100 12042    0 12042    0     0  67651      0 --:--:-- --:--:-- --:--:-- 67651
+curl: (23) Failed writing body (0 != 1133)
+/chromium/microservices-demo$ git status
+
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   transcripts/setup.txt
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   kubernetes-manifests/adservice.yaml
+	modified:   kubernetes-manifests/cartservice.yaml
+	modified:   kubernetes-manifests/checkoutservice.yaml
+	modified:   kubernetes-manifests/currencyservice.yaml
+	modified:   kubernetes-manifests/emailservice.yaml
+	modified:   kubernetes-manifests/frontend.yaml
+	modified:   kubernetes-manifests/loadgenerator.yaml
+	modified:   kubernetes-manifests/paymentservice.yaml
+	modified:   kubernetes-manifests/productcatalogservice.yaml
+	modified:   kubernetes-manifests/recommendationservice.yaml
+	modified:   kubernetes-manifests/shippingservice.yaml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	README.html
+
+/chromium/microservices-demo$ /chromium/microservices-demo$ rm README.html 
+/chromium/microservices-demo$ git add -u
+/chromium/microservices-demo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   kubernetes-manifests/adservice.yaml
+	modified:   kubernetes-manifests/cartservice.yaml
+	modified:   kubernetes-manifests/checkoutservice.yaml
+	modified:   kubernetes-manifests/currencyservice.yaml
+	modified:   kubernetes-manifests/emailservice.yaml
+	modified:   kubernetes-manifests/frontend.yaml
+	modified:   kubernetes-manifests/loadgenerator.yaml
+	modified:   kubernetes-manifests/paymentservice.yaml
+	modified:   kubernetes-manifests/productcatalogservice.yaml
+	modified:   kubernetes-manifests/recommendationservice.yaml
+	modified:   kubernetes-manifests/shippingservice.yaml
+	new file:   transcripts/setup.txt
+
+/chromium/microservices-demo$ git commit -m 'Add setup transcript; point images to mattcary-hackathon registry'
