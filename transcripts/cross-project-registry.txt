@@ -1,0 +1,722 @@
+/chromium/microservices-demo$ gcloud projects create mattcary-cross-reg
+
+Create in progress for [https://cloudresourcemanager.googleapis.com/v1/projects/mattcary-cross-reg].
+Waiting for [operations/cp.6109596351640820362] to finish...done.
+Enabling service [cloudapis.googleapis.com] on project [mattcary-cross-reg]...
+Operation "operations/acf.e09ba746-9750-41c7-b218-8ff4cfc1370b" finished successfully.
+/chromium/microservices-demo$ gcloud config set project mattcary-cross-reg
+Updated property [core/project].
+/chromium/microservices-demo$ gcloud services enable container.googleapis.com
+ERROR: (gcloud.services.enable) FAILED_PRECONDITION: Billing must be enabled for activation of service '[container.googleapis.com, container.googleapis.com, containerregistry.googleapis.com, compute.googleapis.com, compute.googleapis.com, compute.googleapis.com]' in project '968205302393' to proceed.
+- '@type': type.googleapis.com/google.rpc.PreconditionFailure
+  violations:
+  - description: "billing-enabled: Project's billing account is not found. https://console.developers.google.com/project/968205302393/settings"
+    subject: '968205302393'
+    type: serviceusage/billing-enabled
+- '@type': type.googleapis.com/google.rpc.DebugInfo
+  detail: |-
+    [ORIGINAL ERROR] generic::failed_precondition: Billing must be enabled for activation of service '[container.googleapis.com, container.googleapis.com, containerregistry.googleapis.com, compute.googleapis.com, compute.googleapis.com, compute.googleapis.com]' in project '968205302393' to proceed.
+    com.google.api.tenant.exceptions.ExternalStatusException: Billing must be enabled for activation of service '[container.googleapis.com, container.googleapis.com, containerregistry.googleapis.com, compute.googleapis.com, compute.googleapis.com, compute.googleapis.com]' in project '968205302393' to proceed. [google.rpc.error_details_ext] { code: 9 message: "Billing must be enabled for activation of service \'[container.googleapis.com, container.googleapis.com, containerregistry.googleapis.com, compute.googleapis.com, compute.googleapis.com, compute.googleapis.com]\' in project \'968205302393\' to proceed." details { type_url: "type.googleapis.com/google.rpc.PreconditionFailure" value: "\n\252\001\n\034serviceusage/billing-enabled\022\014968205302393\032|billing-enabled: Project\'s billing account is not found. https://console.developers.google.com/project/968205302393/settings" } }
+
+[... linked to Cloud Kubernetes Development from mattcary@google console ...] 
+
+/chromium/microservices-demo$ gcloud services enable container.googleapis.com
+Operation "operations/acf.3e48ed19-b549-47bc-91e1-6bf77cb3fe88" finished successfully.
+/chromium/microservices-demo$ gcloud container clusters create cross-reg --enable-autoupgrade --enable-autoscaling --min-nodes=3 --max-nodes=10 --zone=us-central1-a
+WARNING: Currently VPC-native is not the default mode during cluster creation. In the future, this will become the default mode and can be disabled using `--no-enable-ip-alias` flag. Use `--[no-]enable-ip-alias` flag to suppress this warning.
+WARNING: Starting in 1.12, default node pools in new clusters will have their legacy Compute Engine instance metadata endpoints disabled by default. To create a cluster with legacy instance metadata endpoints disabled in the default node pool, run `clusters create` with the flag `--metadata disable-legacy-endpoints=true`.
+WARNING: Your Pod address range (`--cluster-ipv4-cidr`) can accommodate at most 1008 node(s). 
+This will enable the autorepair feature for nodes. Please see https://cloud.google.com/kubernetes-engine/docs/node-auto-repair for more information on node autorepairs.
+Creating cluster cross-reg in us-central1-a... Cluster is being health-checked (master is healthy)...done.
+Created [https://container.googleapis.com/v1/projects/mattcary-cross-reg/zones/us-central1-a/clusters/cross-reg].
+To inspect the contents of your cluster, go to: https://console.cloud.google.com/kubernetes/workload_/gcloud/us-central1-a/cross-reg?project=mattcary-cross-reg
+kubeconfig entry generated for cross-reg.
+NAME       LOCATION       MASTER_VERSION  MASTER_IP       MACHINE_TYPE   NODE_VERSION    NUM_NODES  STATUS
+cross-reg  us-central1-a  1.13.11-gke.14  35.239.204.159  n1-standard-1  1.13.11-gke.14  3          RUNNING
+/chromium/microservices-demo$ gcloud iam service-accounts create image-puller
+Created service account [image-puller].
+/chromium/microservices-demo$ gcloud projects add-iam-policy-binding mattcary-hackathon --member serviceAccount:image-puller@mattcary-cross-reg.iam.gserviceaccount.com --role roles/storage.admin
+/chromium/microservices-demo$ 
+/chromium/microservices-demo$ mkdir sa-keys/
+/chromium/microservices-demo$ echo sa-keys/ >> .gitignore 
+/chromium/microservices-demo$ gcloud iam service-accounts keys create sa-keys/image-puller.json --iam-account image-puller@mattcary-cross-reg.iam.gserviceaccount.com 
+created key [d7c0130029d03099cbc930589e7a173c8a9d5355] of type [json] as [sa-keys/image-puller.json] for [image-puller@mattcary-cross-reg.iam.gserviceaccount.com]
+/chromium/microservices-demo$ kubectl create secret docker-registry regcred --docker-server=https://gcr.io --docker-username=_json_key --docker-password="$(< sa-keys/image-puller.json)" --docker-email=roi@mattcary.info
+secret/regcred created
+/chromium/microservices-demo$ kubectl get secret regcred
+NAME      TYPE                             DATA   AGE
+regcred   kubernetes.io/dockerconfigjson   1      8s
+/chromium/microservices-demo$ gsutil iam ch serviceAccount:image-puller@mattcary-cross-reg.iam.gserviceaccount.com:objectViewer gs://artifacts.mattcary-hackathon.appspot.com
+/chromium/microservices-demo$ kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fe
+  labels:
+    app: frontend
+spec:
+  containers:
+    - name: server
+      image: gcr.io/mattcary-hackathon/frontend:1.0.0
+      ports:
+      - containerPort: 8080
+      readinessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-readiness-probe"
+      livenessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-liveness-probe"
+      env:
+      - name: PORT
+        value: "8080"
+      - name: PRODUCT_CATALOG_SERVICE_ADDR
+        value: "productcatalogservice:3550"
+      - name: CURRENCY_SERVICE_ADDR
+        value: "currencyservice:7000"
+      - name: CART_SERVICE_ADDR
+        value: "cartservice:7070"
+      - name: RECOMMENDATION_SERVICE_ADDR
+        value: "recommendationservice:8080"
+      - name: SHIPPING_SERVICE_ADDR
+        value: "shippingservice:50051"
+      - name: CHECKOUT_SERVICE_ADDR
+        value: "checkoutservice:5050"
+      - name: AD_SERVICE_ADDR
+        value: "adservice:9555"
+      # - name: JAEGER_SERVICE_ADDR
+      #   value: "jaeger-collector:14268"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+  imagePullSecrets:
+  - name: regcred
+EOF
+> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > pod/fe created
+/chromium/microservices-demo$ 
+/chromium/microservices-demo$ kubectl get pods
+NAME   READY   STATUS              RESTARTS   AGE
+fe     0/1     ContainerCreating   0          3s
+/chromium/microservices-demo$ kubectl describe pods
+Name:         fe
+Namespace:    default
+Priority:     0
+Node:         gke-cross-reg-default-pool-990e76c1-k8x6/10.128.0.3
+Start Time:   Wed, 08 Jan 2020 10:28:36 -0800
+Labels:       app=frontend
+Annotations:  kubectl.kubernetes.io/last-applied-configuration:
+                {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"app":"frontend"},"name":"fe","namespace":"default"},"spec":{"conta...
+Status:       Running
+IP:           10.28.1.10
+IPs:          <none>
+Containers:
+  server:
+    Container ID:   docker://db7d1184195b591b01edd2ea7c1cf427eb5e003c29021507a340743b7cc407f7
+    Image:          gcr.io/mattcary-hackathon/frontend:1.0.0
+    Image ID:       docker-pullable://gcr.io/mattcary-hackathon/frontend@sha256:88db6651ec89ee6a040e5ce95b283ddc299e20ba2f98dbbbd14a3e0d3893a222
+    Port:           8080/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Wed, 08 Jan 2020 10:28:39 -0800
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      100m
+      memory:   64Mi
+    Liveness:   http-get http://:8080/_healthz delay=10s timeout=1s period=10s #success=1 #failure=3
+    Readiness:  http-get http://:8080/_healthz delay=10s timeout=1s period=10s #success=1 #failure=3
+    Environment:
+      PORT:                          8080
+      PRODUCT_CATALOG_SERVICE_ADDR:  productcatalogservice:3550
+      CURRENCY_SERVICE_ADDR:         currencyservice:7000
+      CART_SERVICE_ADDR:             cartservice:7070
+      RECOMMENDATION_SERVICE_ADDR:   recommendationservice:8080
+      SHIPPING_SERVICE_ADDR:         shippingservice:50051
+      CHECKOUT_SERVICE_ADDR:         checkoutservice:5050
+      AD_SERVICE_ADDR:               adservice:9555
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-pp4rv (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             False 
+  ContainersReady   False 
+  PodScheduled      True 
+Volumes:
+  default-token-pp4rv:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-pp4rv
+    Optional:    false
+QoS Class:       Burstable
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age   From                                               Message
+  ----    ------     ----  ----                                               -------
+  Normal  Scheduled  10s   default-scheduler                                  Successfully assigned default/fe to gke-cross-reg-default-pool-990e76c1-k8x6
+  Normal  Pulling    9s    kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  pulling image "gcr.io/mattcary-hackathon/frontend:1.0.0"
+  Normal  Pulled     7s    kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Successfully pulled image "gcr.io/mattcary-hackathon/frontend:1.0.0"
+  Normal  Created    7s    kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Created container
+  Normal  Started    7s    kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Started container
+/chromium/microservices-demo$ kubectl delete pod fe
+pod "fe" deleted
+/chromium/microservices-demo$ kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fe
+  labels:
+    app: frontend
+spec:
+  containers:
+    - name: server
+      image: gcr.io/mattcary-hackathon/frontend:1.0.0
+      ports:
+      - containerPort: 8080
+      readinessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-readiness-probe"
+      livenessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-liveness-probe"
+      env:
+      - name: PORT
+        value: "8080"
+      - name: PRODUCT_CATALOG_SERVICE_ADDR
+        value: "productcatalogservice:3550"
+      - name: CURRENCY_SERVICE_ADDR
+        value: "currencyservice:7000"
+      - name: CART_SERVICE_ADDR
+        value: "cartservice:7070"
+      - name: RECOMMENDATION_SERVICE_ADDR
+        value: "recommendationservice:8080"
+      - name: SHIPPING_SERVICE_ADDR
+        value: "shippingservice:50051"
+      - name: CHECKOUT_SERVICE_ADDR
+        value: "checkoutservice:5050"
+      - name: AD_SERVICE_ADDR
+        value: "adservice:9555"
+      # - name: JAEGER_SERVICE_ADDR
+      #   value: "jaeger-collector:14268"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+EOF
+> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > pod/fe created
+/chromium/microservices-demo$ kubectl get pods
+NAME   READY   STATUS    RESTARTS   AGE
+fe     0/1     Running   0          3s
+/chromium/microservices-demo$ kubectl delete pod fe
+pod "fe" deleted
+kubectl get pods
+/chromium/microservices-demo$ No resources found in default namespace.
+/chromium/microservices-demo$ kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fe
+  labels:
+    app: frontend
+spec:
+  containers:
+    - name: server
+      image: gcr.io/mattcary-hackathon/frontend:1.0.0
+      ports:
+      - containerPort: 8080
+      readinessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-readiness-probe"
+      livenessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-liveness-probe"
+      env:
+      - name: PORT
+        value: "8080"
+      - name: PRODUCT_CATALOG_SERVICE_ADDR
+        value: "productcatalogservice:3550"
+      - name: CURRENCY_SERVICE_ADDR
+        value: "currencyservice:7000"
+      - name: CART_SERVICE_ADDR
+        value: "cartservice:7070"
+      - name: RECOMMENDATION_SERVICE_ADDR
+        value: "recommendationservice:8080"
+      - name: SHIPPING_SERVICE_ADDR
+        value: "shippingservice:50051"
+      - name: CHECKOUT_SERVICE_ADDR
+        value: "checkoutservice:5050"
+      - name: AD_SERVICE_ADDR
+        value: "adservice:9555"
+      # - name: JAEGER_SERVICE_ADDR
+      #   value: "jaeger-collector:14268"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+EOF
+> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > pod/fe created
+/chromium/microservices-demo$ 
+/chromium/microservices-demo$ 
+/chromium/microservices-demo$ kubectl get pods
+NAME   READY   STATUS    RESTARTS   AGE
+fe     0/1     Running   0          4s
+/chromium/microservices-demo$ kubectl describe pods
+Name:         fe
+Namespace:    default
+Priority:     0
+Node:         gke-cross-reg-default-pool-990e76c1-k8x6/10.128.0.3
+Start Time:   Wed, 08 Jan 2020 10:29:32 -0800
+Labels:       app=frontend
+Annotations:  kubectl.kubernetes.io/last-applied-configuration:
+                {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"app":"frontend"},"name":"fe","namespace":"default"},"spec":{"conta...
+Status:       Running
+IP:           10.28.1.12
+IPs:          <none>
+Containers:
+  server:
+    Container ID:   docker://34d228ea73060b83a04fe18e2483ba6b9f6790fa621d47993817260084e17e8f
+    Image:          gcr.io/mattcary-hackathon/frontend:1.0.0
+    Image ID:       docker-pullable://gcr.io/mattcary-hackathon/frontend@sha256:88db6651ec89ee6a040e5ce95b283ddc299e20ba2f98dbbbd14a3e0d3893a222
+    Port:           8080/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Wed, 08 Jan 2020 10:29:33 -0800
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      100m
+      memory:   64Mi
+    Liveness:   http-get http://:8080/_healthz delay=10s timeout=1s period=10s #success=1 #failure=3
+    Readiness:  http-get http://:8080/_healthz delay=10s timeout=1s period=10s #success=1 #failure=3
+    Environment:
+      PORT:                          8080
+      PRODUCT_CATALOG_SERVICE_ADDR:  productcatalogservice:3550
+      CURRENCY_SERVICE_ADDR:         currencyservice:7000
+      CART_SERVICE_ADDR:             cartservice:7070
+      RECOMMENDATION_SERVICE_ADDR:   recommendationservice:8080
+      SHIPPING_SERVICE_ADDR:         shippingservice:50051
+      CHECKOUT_SERVICE_ADDR:         checkoutservice:5050
+      AD_SERVICE_ADDR:               adservice:9555
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-pp4rv (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             False 
+  ContainersReady   False 
+  PodScheduled      True 
+Volumes:
+  default-token-pp4rv:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-pp4rv
+    Optional:    false
+QoS Class:       Burstable
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type    Reason     Age   From                                               Message
+  ----    ------     ----  ----                                               -------
+  Normal  Scheduled  9s    default-scheduler                                  Successfully assigned default/fe to gke-cross-reg-default-pool-990e76c1-k8x6
+  Normal  Pulled     8s    kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Container image "gcr.io/mattcary-hackathon/frontend:1.0.0" already present on machine
+  Normal  Created    8s    kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Created container
+  Normal  Started    8s    kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Started container
+/chromium/microservices-demo$ kubectl delete pod fe
+pod "fe" deleted
+/chromium/microservices-demo$ kubectl get nodes
+NAME                                       STATUS   ROLES    AGE   VERSION
+gke-cross-reg-default-pool-990e76c1-8wrg   Ready    <none>   38m   v1.13.11-gke.14
+gke-cross-reg-default-pool-990e76c1-k8x6   Ready    <none>   38m   v1.13.11-gke.14
+gke-cross-reg-default-pool-990e76c1-x16l   Ready    <none>   38m   v1.13.11-gke.14
+/chromium/microservices-demo$ gcloud compute ssh gke-cross-reg-default-pool-990e76c1-k8x6
+No zone specified. Using zone [us-central1-a] for instance: [gke-cross-reg-default-pool-990e76c1-k8x6].
+Updating project ssh metadata...⠼Updated [https://www.googleapis.com/compute/v1/projects/mattcary-cross-reg].
+Updating project ssh metadata...done.
+Waiting for SSH key to propagate.
+Warning: Permanently added 'compute.715896622914710006' (ED25519) to the list of known hosts.
+
+Welcome to Kubernetes v1.13.11-gke.14!
+
+You can find documentation for Kubernetes at:
+  http://docs.kubernetes.io/
+
+The source for this release can be found at:
+  /home/kubernetes/kubernetes-src.tar.gz
+Or you can download it at:
+  https://storage.googleapis.com/kubernetes-release-gke/release/v1.13.11-gke.14/kubernetes-src.tar.gz
+
+It is based on the Kubernetes source at:
+  https://github.com/kubernetes/kubernetes/tree/v1.13.11-gke.14
+
+For Kubernetes copyright and licensing information, see:
+  /home/kubernetes/LICENSES
+
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ sudo docker images -a
+REPOSITORY                                            TAG                 IMAGE ID            CREATED             SIZE
+gcr.io/mattcary-hackathon/frontend                    1.0.0               c558d6d46adf        18 hours ago        40.9MB
+gke.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/prometheus-to-sd                           v0.8.2              3df88c7a6ea8        2 months ago        37.9MB
+gke.gcr.io/heapster                                   v1.7.0              c153bcbe94af        4 months ago        84MB
+eu.gcr.io/gke-release-staging/kube-addon-manager      v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gcr.io/gke-release-staging/kube-addon-manager         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gke.gcr.io/kube-addon-manager                         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+asia.gcr.io/gke-release-staging/kube-addon-manager    v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+k8s.gcr.io/cpvpa-amd64                                v0.7.1              6d2a3d4199b8        7 months ago        49.6MB
+k8s.gcr.io/ip-masq-agent-amd64                        v2.3.0              3de20ad90d2e        8 months ago        50.1MB
+k8s.gcr.io/k8s-dns-node-cache                         1.15.2              8a7d01629677        8 months ago        62.5MB
+gcr.io/stackdriver-agents/stackdriver-logging-agent   1.6.8               4270b0a6eeb1        8 months ago        265MB
+k8s.gcr.io/fluentd-gcp-scaler                         0.5.2               3dfc22ad2d25        8 months ago        90.5MB
+k8s.gcr.io/prometheus-to-sd                           v0.5.0              42e4387da83f        10 months ago       41.9MB
+k8s.gcr.io/event-exporter                             v0.2.4              e7c317b95d73        10 months ago       47.3MB
+k8s.gcr.io/kubernetes-dashboard-amd64                 v1.10.1             f9aed6605b81        12 months ago       122MB
+k8s.gcr.io/addon-resizer                              1.8.4               5ec630648120        14 months ago       38.3MB
+k8s.gcr.io/coredns                                    1.2.6               f59dcacceff4        14 months ago       40MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.3.0               33813c948942        15 months ago       45.8MB
+k8s.gcr.io/defaultbackend-amd64                       1.5                 b5af743e5984        15 months ago       5.13MB
+k8s.gcr.io/k8s-dns-sidecar                            1.14.13             4b2e93f0133d        15 months ago       42.9MB
+k8s.gcr.io/k8s-dns-kube-dns                           1.14.13             55a3c5209c5e        15 months ago       51.2MB
+k8s.gcr.io/k8s-dns-dnsmasq-nanny                      1.14.13             6dc8ef8287d3        15 months ago       41.4MB
+k8s.gcr.io/metrics-server-amd64                       v0.3.1              61a0c90da56e        15 months ago       40.8MB
+k8s.gcr.io/heapster-amd64                             v1.6.0-beta.1       71b13764bb08        17 months ago       76MB
+k8s.gcr.io/metadata-proxy                             v0.1.10             38008cfef46f        17 months ago       8.95MB
+k8s.gcr.io/ingress-gce-glbc-amd64                     v1.2.3              50abe16843bb        17 months ago       71.8MB
+k8s.gcr.io/addon-resizer                              1.8.3               b57c00a12f6c        18 months ago       33.1MB
+k8s.gcr.io/fluentd-elasticsearch                      v2.2.0              3e3172353877        18 months ago       138MB
+k8s.gcr.io/gke-node-termination-handler               <none>              7c688306714c        18 months ago       42.5MB
+k8s.gcr.io/pause                                      3.1                 da86e6ba6ca1        2 years ago         742kB
+k8s.gcr.io/busybox                                    1.27                54511612f1c4        2 years ago         1.13MB
+k8s.gcr.io/node-problem-detector                      v0.4.1              cf5601c20da5        2 years ago         287MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.1.2-r2            7d892ca550df        2 years ago         49.6MB
+asia.gcr.io/google-containers/pause-amd64             3.0                 99e59f495ffa        3 years ago         747kB
+eu.gcr.io/google-containers/pause-amd64               3.0                 99e59f495ffa        3 years ago         747kB
+gcr.io/google-containers/pause-amd64                  3.0                 99e59f495ffa        3 years ago         747kB
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ sudo docker system prune 
+WARNING! This will remove:
+        - all stopped containers
+        - all networks not used by at least one container
+        - all dangling images
+        - all dangling build cache
+Are you sure you want to continue? [y/N] y
+Deleted Images:
+untagged: k8s.gcr.io/gke-node-termination-handler@sha256:e08ca863a547754fa7b75064bdad04f04cbef86c7b0a181ecc7304e747623181
+deleted: sha256:7c688306714ce743c5a5d89bd06ce90f6735723d2254f6429d07e9c7f8cab104
+deleted: sha256:095ed9e7b958f13c3fb781e01d8aa2097588462329510834746c9764e9d2fdbd
+deleted: sha256:b938cafd529806090183cdfa2a1ea6de1a49ea31a3ba7804264e1ed0674e5d19
+deleted: sha256:cd7100a72410606589a54b932cabd804a17f9ae5b42a1882bd56d263e02b6215
+
+Total reclaimed space: 42.47MB
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ 
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ sudo docker images -a
+REPOSITORY                                            TAG                 IMAGE ID            CREATED             SIZE
+gcr.io/mattcary-hackathon/frontend                    1.0.0               c558d6d46adf        18 hours ago        40.9MB
+gke.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/prometheus-to-sd                           v0.8.2              3df88c7a6ea8        2 months ago        37.9MB
+gke.gcr.io/heapster                                   v1.7.0              c153bcbe94af        4 months ago        84MB
+asia.gcr.io/gke-release-staging/kube-addon-manager    v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+eu.gcr.io/gke-release-staging/kube-addon-manager      v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gcr.io/gke-release-staging/kube-addon-manager         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gke.gcr.io/kube-addon-manager                         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+k8s.gcr.io/cpvpa-amd64                                v0.7.1              6d2a3d4199b8        7 months ago        49.6MB
+k8s.gcr.io/ip-masq-agent-amd64                        v2.3.0              3de20ad90d2e        8 months ago        50.1MB
+k8s.gcr.io/k8s-dns-node-cache                         1.15.2              8a7d01629677        8 months ago        62.5MB
+gcr.io/stackdriver-agents/stackdriver-logging-agent   1.6.8               4270b0a6eeb1        8 months ago        265MB
+k8s.gcr.io/fluentd-gcp-scaler                         0.5.2               3dfc22ad2d25        8 months ago        90.5MB
+k8s.gcr.io/prometheus-to-sd                           v0.5.0              42e4387da83f        10 months ago       41.9MB
+k8s.gcr.io/event-exporter                             v0.2.4              e7c317b95d73        10 months ago       47.3MB
+k8s.gcr.io/kubernetes-dashboard-amd64                 v1.10.1             f9aed6605b81        12 months ago       122MB
+k8s.gcr.io/addon-resizer                              1.8.4               5ec630648120        14 months ago       38.3MB
+k8s.gcr.io/coredns                                    1.2.6               f59dcacceff4        14 months ago       40MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.3.0               33813c948942        15 months ago       45.8MB
+k8s.gcr.io/defaultbackend-amd64                       1.5                 b5af743e5984        15 months ago       5.13MB
+k8s.gcr.io/k8s-dns-sidecar                            1.14.13             4b2e93f0133d        15 months ago       42.9MB
+k8s.gcr.io/k8s-dns-kube-dns                           1.14.13             55a3c5209c5e        15 months ago       51.2MB
+k8s.gcr.io/k8s-dns-dnsmasq-nanny                      1.14.13             6dc8ef8287d3        15 months ago       41.4MB
+k8s.gcr.io/metrics-server-amd64                       v0.3.1              61a0c90da56e        15 months ago       40.8MB
+k8s.gcr.io/heapster-amd64                             v1.6.0-beta.1       71b13764bb08        17 months ago       76MB
+k8s.gcr.io/metadata-proxy                             v0.1.10             38008cfef46f        17 months ago       8.95MB
+k8s.gcr.io/ingress-gce-glbc-amd64                     v1.2.3              50abe16843bb        17 months ago       71.8MB
+k8s.gcr.io/addon-resizer                              1.8.3               b57c00a12f6c        18 months ago       33.1MB
+k8s.gcr.io/fluentd-elasticsearch                      v2.2.0              3e3172353877        18 months ago       138MB
+k8s.gcr.io/pause                                      3.1                 da86e6ba6ca1        2 years ago         742kB
+k8s.gcr.io/busybox                                    1.27                54511612f1c4        2 years ago         1.13MB
+k8s.gcr.io/node-problem-detector                      v0.4.1              cf5601c20da5        2 years ago         287MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.1.2-r2            7d892ca550df        2 years ago         49.6MB
+asia.gcr.io/google-containers/pause-amd64             3.0                 99e59f495ffa        3 years ago         747kB
+eu.gcr.io/google-containers/pause-amd64               3.0                 99e59f495ffa        3 years ago         747kB
+gcr.io/google-containers/pause-amd64                  3.0                 99e59f495ffa        3 years ago         747kB
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ sudo docker rmi gcr.io/mattcary-hackathon/frontend
+Error: No such image: gcr.io/mattcary-hackathon/frontend
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ sudo docker images -a
+REPOSITORY                                            TAG                 IMAGE ID            CREATED             SIZE
+gcr.io/mattcary-hackathon/frontend                    1.0.0               c558d6d46adf        18 hours ago        40.9MB
+gke.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/prometheus-to-sd                           v0.8.2              3df88c7a6ea8        2 months ago        37.9MB
+gke.gcr.io/heapster                                   v1.7.0              c153bcbe94af        4 months ago        84MB
+asia.gcr.io/gke-release-staging/kube-addon-manager    v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+eu.gcr.io/gke-release-staging/kube-addon-manager      v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gcr.io/gke-release-staging/kube-addon-manager         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gke.gcr.io/kube-addon-manager                         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+k8s.gcr.io/cpvpa-amd64                                v0.7.1              6d2a3d4199b8        7 months ago        49.6MB
+k8s.gcr.io/ip-masq-agent-amd64                        v2.3.0              3de20ad90d2e        8 months ago        50.1MB
+k8s.gcr.io/k8s-dns-node-cache                         1.15.2              8a7d01629677        8 months ago        62.5MB
+gcr.io/stackdriver-agents/stackdriver-logging-agent   1.6.8               4270b0a6eeb1        8 months ago        265MB
+k8s.gcr.io/fluentd-gcp-scaler                         0.5.2               3dfc22ad2d25        8 months ago        90.5MB
+k8s.gcr.io/prometheus-to-sd                           v0.5.0              42e4387da83f        10 months ago       41.9MB
+k8s.gcr.io/event-exporter                             v0.2.4              e7c317b95d73        10 months ago       47.3MB
+k8s.gcr.io/kubernetes-dashboard-amd64                 v1.10.1             f9aed6605b81        12 months ago       122MB
+k8s.gcr.io/addon-resizer                              1.8.4               5ec630648120        14 months ago       38.3MB
+k8s.gcr.io/coredns                                    1.2.6               f59dcacceff4        14 months ago       40MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.3.0               33813c948942        15 months ago       45.8MB
+k8s.gcr.io/defaultbackend-amd64                       1.5                 b5af743e5984        15 months ago       5.13MB
+k8s.gcr.io/k8s-dns-sidecar                            1.14.13             4b2e93f0133d        15 months ago       42.9MB
+k8s.gcr.io/k8s-dns-kube-dns                           1.14.13             55a3c5209c5e        15 months ago       51.2MB
+k8s.gcr.io/k8s-dns-dnsmasq-nanny                      1.14.13             6dc8ef8287d3        15 months ago       41.4MB
+k8s.gcr.io/metrics-server-amd64                       v0.3.1              61a0c90da56e        15 months ago       40.8MB
+k8s.gcr.io/heapster-amd64                             v1.6.0-beta.1       71b13764bb08        17 months ago       76MB
+k8s.gcr.io/metadata-proxy                             v0.1.10             38008cfef46f        17 months ago       8.95MB
+k8s.gcr.io/ingress-gce-glbc-amd64                     v1.2.3              50abe16843bb        17 months ago       71.8MB
+k8s.gcr.io/addon-resizer                              1.8.3               b57c00a12f6c        18 months ago       33.1MB
+k8s.gcr.io/fluentd-elasticsearch                      v2.2.0              3e3172353877        18 months ago       138MB
+k8s.gcr.io/pause                                      3.1                 da86e6ba6ca1        2 years ago         742kB
+k8s.gcr.io/busybox                                    1.27                54511612f1c4        2 years ago         1.13MB
+k8s.gcr.io/node-problem-detector                      v0.4.1              cf5601c20da5        2 years ago         287MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.1.2-r2            7d892ca550df        2 years ago         49.6MB
+asia.gcr.io/google-containers/pause-amd64             3.0                 99e59f495ffa        3 years ago         747kB
+eu.gcr.io/google-containers/pause-amd64               3.0                 99e59f495ffa        3 years ago         747kB
+gcr.io/google-containers/pause-amd64                  3.0                 99e59f495ffa        3 years ago         747kB
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ sudo docker rmi c558d6d46adf
+Untagged: gcr.io/mattcary-hackathon/frontend:1.0.0
+Untagged: gcr.io/mattcary-hackathon/frontend@sha256:88db6651ec89ee6a040e5ce95b283ddc299e20ba2f98dbbbd14a3e0d3893a222
+Deleted: sha256:c558d6d46adf3ae69b1006d9030959fd33194267bd20ee60bc9c34e54551163a
+Deleted: sha256:58469be692ed8e593a900ac033fce2188861e5ec4bc5e642fab7335b8e26a5f7
+Deleted: sha256:5ce8f7dcb5c4cafa57000d71a3b79d225cdd51f62cf768ed7db0ef6aa05cf82b
+Deleted: sha256:9af659ee3ff91fff8fb19daed163371618a6fbde151d4c8c3af506b45b3fa8f9
+Deleted: sha256:f10ad950a31d7949aae2bceeff8a1f083f4b1b4ced7008dabef3020977ce54b3
+Deleted: sha256:2114ad9688998889a006f169ad3c470458c1888e6f203e2fab87309f4502db96
+Deleted: sha256:03901b4a2ea88eeaad62dbe59b072b28b6efa00491962b8741081c5df50c65e0
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ sudo docker images -a
+REPOSITORY                                            TAG                 IMAGE ID            CREATED             SIZE
+gke.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/kube-proxy                                 v1.13.11-gke.14     fe8de7db59d1        2 months ago        83.7MB
+k8s.gcr.io/prometheus-to-sd                           v0.8.2              3df88c7a6ea8        2 months ago        37.9MB
+gke.gcr.io/heapster                                   v1.7.0              c153bcbe94af        4 months ago        84MB
+asia.gcr.io/gke-release-staging/kube-addon-manager    v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+eu.gcr.io/gke-release-staging/kube-addon-manager      v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gcr.io/gke-release-staging/kube-addon-manager         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+gke.gcr.io/kube-addon-manager                         v8.9.2-gke.0        9752477a833b        5 months ago        99.2MB
+k8s.gcr.io/cpvpa-amd64                                v0.7.1              6d2a3d4199b8        7 months ago        49.6MB
+k8s.gcr.io/ip-masq-agent-amd64                        v2.3.0              3de20ad90d2e        8 months ago        50.1MB
+k8s.gcr.io/k8s-dns-node-cache                         1.15.2              8a7d01629677        8 months ago        62.5MB
+gcr.io/stackdriver-agents/stackdriver-logging-agent   1.6.8               4270b0a6eeb1        8 months ago        265MB
+k8s.gcr.io/fluentd-gcp-scaler                         0.5.2               3dfc22ad2d25        8 months ago        90.5MB
+k8s.gcr.io/prometheus-to-sd                           v0.5.0              42e4387da83f        10 months ago       41.9MB
+k8s.gcr.io/event-exporter                             v0.2.4              e7c317b95d73        10 months ago       47.3MB
+k8s.gcr.io/kubernetes-dashboard-amd64                 v1.10.1             f9aed6605b81        12 months ago       122MB
+k8s.gcr.io/addon-resizer                              1.8.4               5ec630648120        14 months ago       38.3MB
+k8s.gcr.io/coredns                                    1.2.6               f59dcacceff4        14 months ago       40MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.3.0               33813c948942        15 months ago       45.8MB
+k8s.gcr.io/defaultbackend-amd64                       1.5                 b5af743e5984        15 months ago       5.13MB
+k8s.gcr.io/k8s-dns-sidecar                            1.14.13             4b2e93f0133d        15 months ago       42.9MB
+k8s.gcr.io/k8s-dns-kube-dns                           1.14.13             55a3c5209c5e        15 months ago       51.2MB
+k8s.gcr.io/k8s-dns-dnsmasq-nanny                      1.14.13             6dc8ef8287d3        15 months ago       41.4MB
+k8s.gcr.io/metrics-server-amd64                       v0.3.1              61a0c90da56e        15 months ago       40.8MB
+k8s.gcr.io/heapster-amd64                             v1.6.0-beta.1       71b13764bb08        17 months ago       76MB
+k8s.gcr.io/metadata-proxy                             v0.1.10             38008cfef46f        17 months ago       8.95MB
+k8s.gcr.io/ingress-gce-glbc-amd64                     v1.2.3              50abe16843bb        17 months ago       71.8MB
+k8s.gcr.io/addon-resizer                              1.8.3               b57c00a12f6c        18 months ago       33.1MB
+k8s.gcr.io/fluentd-elasticsearch                      v2.2.0              3e3172353877        18 months ago       138MB
+k8s.gcr.io/pause                                      3.1                 da86e6ba6ca1        2 years ago         742kB
+k8s.gcr.io/busybox                                    1.27                54511612f1c4        2 years ago         1.13MB
+k8s.gcr.io/node-problem-detector                      v0.4.1              cf5601c20da5        2 years ago         287MB
+k8s.gcr.io/cluster-proportional-autoscaler-amd64      1.1.2-r2            7d892ca550df        2 years ago         49.6MB
+asia.gcr.io/google-containers/pause-amd64             3.0                 99e59f495ffa        3 years ago         747kB
+eu.gcr.io/google-containers/pause-amd64               3.0                 99e59f495ffa        3 years ago         747kB
+gcr.io/google-containers/pause-amd64                  3.0                 99e59f495ffa        3 years ago         747kB
+mattcary@gke-cross-reg-default-pool-990e76c1-k8x6 ~ $ exit
+logout
+Connection to 35.238.158.157 closed.
+/chromium/microservices-demo$ kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fe
+  labels:
+    app: frontend
+spec:
+  containers:
+    - name: server
+      image: gcr.io/mattcary-hackathon/frontend:1.0.0
+      ports:
+      - containerPort: 8080
+      readinessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-readiness-probe"
+      livenessProbe:
+        initialDelaySeconds: 10
+        httpGet:
+          path: "/_healthz"
+          port: 8080
+          httpHeaders:
+          - name: "Cookie"
+            value: "shop_session-id=x-liveness-probe"
+      env:
+      - name: PORT
+        value: "8080"
+      - name: PRODUCT_CATALOG_SERVICE_ADDR
+        value: "productcatalogservice:3550"
+      - name: CURRENCY_SERVICE_ADDR
+        value: "currencyservice:7000"
+      - name: CART_SERVICE_ADDR
+        value: "cartservice:7070"
+      - name: RECOMMENDATION_SERVICE_ADDR
+        value: "recommendationservice:8080"
+      - name: SHIPPING_SERVICE_ADDR
+        value: "shippingservice:50051"
+      - name: CHECKOUT_SERVICE_ADDR
+        value: "checkoutservice:5050"
+      - name: AD_SERVICE_ADDR
+        value: "adservice:9555"
+      # - name: JAEGER_SERVICE_ADDR
+      #   value: "jaeger-collector:14268"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+EOF
+> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > pod/fe created
+/chromium/microservices-demo$ 
+/chromium/microservices-demo$ 
+/chromium/microservices-demo$ kubectl get pods
+NAME   READY   STATUS             RESTARTS   AGE
+fe     0/1     ImagePullBackOff   0          4s
+/chromium/microservices-demo$ kubectl describe pods
+Name:         fe
+Namespace:    default
+Priority:     0
+Node:         gke-cross-reg-default-pool-990e76c1-k8x6/10.128.0.3
+Start Time:   Wed, 08 Jan 2020 10:36:28 -0800
+Labels:       app=frontend
+Annotations:  kubectl.kubernetes.io/last-applied-configuration:
+                {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"app":"frontend"},"name":"fe","namespace":"default"},"spec":{"conta...
+Status:       Pending
+IP:           10.28.1.13
+IPs:          <none>
+Containers:
+  server:
+    Container ID:   
+    Image:          gcr.io/mattcary-hackathon/frontend:1.0.0
+    Image ID:       
+    Port:           8080/TCP
+    Host Port:      0/TCP
+    State:          Waiting
+      Reason:       ImagePullBackOff
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      100m
+      memory:   64Mi
+    Liveness:   http-get http://:8080/_healthz delay=10s timeout=1s period=10s #success=1 #failure=3
+    Readiness:  http-get http://:8080/_healthz delay=10s timeout=1s period=10s #success=1 #failure=3
+    Environment:
+      PORT:                          8080
+      PRODUCT_CATALOG_SERVICE_ADDR:  productcatalogservice:3550
+      CURRENCY_SERVICE_ADDR:         currencyservice:7000
+      CART_SERVICE_ADDR:             cartservice:7070
+      RECOMMENDATION_SERVICE_ADDR:   recommendationservice:8080
+      SHIPPING_SERVICE_ADDR:         shippingservice:50051
+      CHECKOUT_SERVICE_ADDR:         checkoutservice:5050
+      AD_SERVICE_ADDR:               adservice:9555
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-pp4rv (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             False 
+  ContainersReady   False 
+  PodScheduled      True 
+Volumes:
+  default-token-pp4rv:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-pp4rv
+    Optional:    false
+QoS Class:       Burstable
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type     Reason     Age              From                                               Message
+  ----     ------     ----             ----                                               -------
+  Normal   Scheduled  8s               default-scheduler                                  Successfully assigned default/fe to gke-cross-reg-default-pool-990e76c1-k8x6
+  Normal   Pulling    8s               kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  pulling image "gcr.io/mattcary-hackathon/frontend:1.0.0"
+  Warning  Failed     8s               kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Failed to pull image "gcr.io/mattcary-hackathon/frontend:1.0.0": rpc error: code = Unknown desc = Error response from daemon: pull access denied for gcr.io/mattcary-hackathon/frontend, repository does not exist or may require 'docker login'
+  Warning  Failed     8s               kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Error: ErrImagePull
+  Normal   BackOff    6s (x2 over 7s)  kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Back-off pulling image "gcr.io/mattcary-hackathon/frontend:1.0.0"
+  Warning  Failed     6s (x2 over 7s)  kubelet, gke-cross-reg-default-pool-990e76c1-k8x6  Error: ImagePullBackOff
+
+[... \o/ ...]
+
+/chromium/microservices-demo$ exit
+
+exit
+
+Process shell<2> finished
