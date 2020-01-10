@@ -31,12 +31,12 @@ spec:
       restartPolicy: Always
       containers:
       - name: main
-        image: gcr.io/mattcary-hackathon/loadgenerator:1.0.0
+        image: gcr.io/mattcary-hipster/loadgenerator:1.0.0
         env:
         - name: FRONTEND_ADDR
           value: "frontend:80"
         - name: USERS
-          value: "10"
+          value: "1000"
         resources:
           requests:
             cpu: 300m
