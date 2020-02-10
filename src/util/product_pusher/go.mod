@@ -1,9 +1,8 @@
-module github.com/mattcary/microservices-demo/util/product_pusher
+module github.com/mattcary/microservices-demo/src/util/product_pusher
 
 go 1.14
 
 require (
-	github.com/GoogleCloudPlatform/microservices-demo v0.1.3
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.3.3
 	github.com/mattcary/microservices-demo v0.1.3
