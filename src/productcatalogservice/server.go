@@ -15,28 +15,22 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 	"time"
 
-	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
+	pb "github.com/mattcary/microservices-demo/src/productcatalogservice/genproto"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	"cloud.google.com/go/profiler"
+	"contrib.go.opencensus.io/exporter/jaeger"
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
-	"go.opencensus.io/exporter/jaeger"
 	"go.opencensus.io/plugin/ocgrpc"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/trace"
@@ -48,7 +42,7 @@ import (
 var (
 	log          *logrus.Logger
 	extraLatency time.Duration
-	db *sql.DB
+	db           *sql.DB
 
 	port = "3550"
 )
@@ -83,21 +77,23 @@ func main() {
 		extraLatency = time.Duration(0)
 	}
 
-	// open db
-	dbStr := fmt.Sprintf("%s:%s@%s/Catalog", os.Getenv("SQL_USER"), os.GetEnv("SQL_PASSWORD"), os.Getenv("SQL_HOST"))
-	var err error
-	db, err = sql.Open("mysql", dbStr)
-	if err != nil {
-		log.Warnf("Could not open database %v", dbStr)
+	if err := openDB(); err != nil {
+		log.Warnf("Could not open database: %v", err)
 	}
-
-
 	if os.Getenv("PORT") != "" {
 		port = os.Getenv("PORT")
 	}
 	log.Infof("starting grpc server at :%s", port)
 	run(port)
 	select {}
+}
+
+func openDB() error {
+	// open db
+	dbStr := fmt.Sprintf("%s:%s@%s/Catalog", os.Getenv("SQL_USER"), os.Getenv("SQL_PASSWORD"), os.Getenv("SQL_HOST"))
+	var err error
+	db, err = sql.Open("mysql", dbStr)
+	return err
 }
 
 func run(port string) string {
@@ -194,6 +190,49 @@ func initProfiling(service, version string) {
 	log.Warn("could not initialize Stackdriver profiler after retrying, giving up")
 }
 
+func readProductResult(rows *sql.Rows) (*pb.Product, error) {
+	var (
+		id            string
+		name          string
+		description   string
+		picture       string
+		currencyCode  string
+		currencyUnits int64
+		currencyNanos int32
+	)
+	if err := rows.Scan(&id, &name, &description, &picture, &currencyCode, &currencyUnits, &currencyNanos); err != nil {
+		return nil, err
+	}
+	var p pb.Product
+	p.Id = id
+	p.Name = name
+	p.Description = description
+	p.Picture = picture
+	var price pb.Money
+	price.CurrencyCode = currencyCode
+	price.Units = currencyUnits
+	price.Nanos = currencyNanos
+	p.PriceUsd = &price
+	return &p, nil
+}
+
+func getProductCategories(db *sql.DB, id string) (*[]string, error) {
+	res, err := db.Query("SELECT Category FROM Categories WHERE ProductID = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	var categories []string
+	for res.Next() {
+		var category string
+		err = res.Scan(&category)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+	return &categories, nil
+}
+
 type productCatalog struct{}
 
 func (p *productCatalog) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
@@ -206,52 +245,84 @@ func (p *productCatalog) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Hea
 
 func (p *productCatalog) ListProducts(context.Context, *pb.Empty) (*pb.ListProductsResponse, error) {
 	time.Sleep(extraLatency)
-	res, err := db.query("SELECT ProductID, Name, Description, Picture, CurrencyCode, CurrencyUnits, CurrencyNanos FROM Products")
+	res, err := db.Query("SELECT ProductID, Name, Description, Picture, CurrencyCode, CurrencyUnits, CurrencyNanos FROM Products")
 	if err != nil {
 		return nil, err
 	}
-	products = []*pb.Products
-	var lastErr error
+	var products []*pb.Product
 	for res.Next() {
 		prod, err := readProductResult(res)
 		if err != nil {
-			lastErr = err
-			log.Warnf("Reading error: %v", err)
-			continue;
+			return nil, err
 		}
-		products = append(products, &prod)
+		products = append(products, prod)
 	}
 
-	return &pb.ListProductsResponse{Products: products}, lastErr
+	categories := make(map[string][]string)
+	res, err = db.Query("SELECT ProductID, Category FROM Categories")
+	for res.Next() {
+		var id string
+		var category string
+		err = res.Scan(&id, &category)
+		if err != nil {
+			return nil, err
+		}
+		categories[id] = append(categories[id], category)
+	}
+	for _, prod := range products {
+		cs, found := categories[prod.Id]
+		if found {
+			for _, c := range cs {
+				prod.Categories = append(prod.Categories, c)
+			}
+		}
+	}
+	return &pb.ListProductsResponse{Products: products}, nil
 }
 
 func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductRequest) (*pb.Product, error) {
 	time.Sleep(extraLatency)
-	res, err := db.query("SELECT ProductID, Name, Description, Picture, CurrencyCode, CurrencyUnits, CurrencyNanos FROM Products WHERE ProductID = ?", req.Id)
+	res, err := db.Query("SELECT ProductID, Name, Description, Picture, CurrencyCode, CurrencyUnits, CurrencyNanos FROM Products WHERE ProductID = ?", req.Id)
 	if err != nil {
 		return nil, err
 	}
 	if !res.Next() {
-		return nil, fmt.Errorf("No matching products for %v", req.Id)
+		return nil, status.Errorf(codes.NotFound, "No matching products for %v", req.Id)
 	}
 	prod, err := readProductResult(res)
-	return &prod, nil
+	categories, err := getProductCategories(db, prod.Id)
+	if err != nil {
+		return nil, err
+	}
+	if categories != nil {
+		prod.Categories = *categories
+	}
+	return prod, nil
 }
 
 func (p *productCatalog) SearchProducts(ctx context.Context, req *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
 	time.Sleep(extraLatency)
 	// Intepret query as a substring match in name or description.
-	res, err := db.query("SELECT ProductID, Name, Description, Picture, CurrencyCode, CurrencyUnits, CurrencyNanos FROM Products WHERE Name LIKE '%?%' OR Description LIKE '%?%'", req.Query, req.Query)
+	res, err := db.Query("SELECT ProductID, Name, Description, Picture, CurrencyCode, CurrencyUnits, CurrencyNanos FROM Products WHERE Name LIKE CONCAT('%', ?, '%') OR Description LIKE CONCAT('%', ?, '%')", req.Query, req.Query)
+	if err != nil {
+		return nil, err
+	}
 	var products []*pb.Product
-	var lastErr error
 	for res.Next() {
 		prod, err := readProductResult(res)
 		if err != nil {
-			lastErr = err
-			log.Warnf("Reading error: %v", err)
-			continue;
+			return nil, err
 		}
-		products = append(products, &prod)
+		products = append(products, prod)
+	}
+	for _, p := range products {
+		categories, err := getProductCategories(db, p.Id)
+		if err != nil {
+			return nil, err
+		}
+		if categories != nil {
+			p.Categories = *categories
+		}
 	}
 	return &pb.SearchProductsResponse{Results: products}, nil
 }

@@ -50,6 +50,13 @@ func PushCatalog(filename string) error {
 		return err
 	}
 	defer db.Close()
+
+	if _, err := db.Exec("DROP TABLE IF EXISTS Products"); err != nil {
+		return err
+	}
+	if _, err := db.Exec("DROP TABLE IF EXISTS Categories"); err != nil {
+		return err
+	}
 	err = initDB(db)
 	if err != nil {
 		return err
@@ -135,8 +142,9 @@ func createTables(db *sql.DB) error {
             Description   varchar(1024),
             Picture       varchar(512),
             CurrencyCode  char(3),
-            CurrencyUnits int(32),
-            CurrencyNanos int(64))`)
+            CurrencyUnits int(64),
+            CurrencyNanos int(32),
+            CONSTRAINT PK PRIMARY KEY (ProductID))`)
 	if productErr != nil {
 		log.Warn("Could not create table Products")
 		// Fall through to try to create Categories.
@@ -144,7 +152,8 @@ func createTables(db *sql.DB) error {
 	_, categoryErr := db.Exec(`
         CREATE TABLE Categories (
             ProductID     varchar(32),
-            Category      varchar(255))`)
+            Category      varchar(255),
+            CONSTRAINT PK PRIMARY KEY (ProductID, Category))`)
 	if categoryErr != nil {
 		log.Warn("Could not create table Categories")
 		// Fall through to return first err.

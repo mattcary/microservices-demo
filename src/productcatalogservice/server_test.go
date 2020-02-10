@@ -16,11 +16,13 @@ package main
 
 import (
 	"context"
+	"os"
 	"testing"
 
-	pb "github.com/mattcary/microservices-demo/src/productcatalogservice/genproto"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
+	pb "github.com/mattcary/microservices-demo/src/productcatalogservice/genproto"
+	"github.com/mattcary/microservices-demo/src/util/product_pusher"
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -28,8 +30,24 @@ import (
 )
 
 func TestServer(t *testing.T) {
+	// This assumes a local MySQL instance set up as in the util/product_pusher test.
+	os.Setenv("SQL_USER", "products")
+	os.Setenv("SQL_PASSWORD", "be84fa653f7770a")
+	os.Setenv("SQL_HOST", "")
+	product_pusher.PushCatalog("products.json")
+	rsp, err := product_pusher.ReadCatalogFile("products.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsedCatalog := rsp.Products
+
+	err = openDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ctx := context.Background()
-	addr := run(0)
+	addr := run("0")
 	conn, err := grpc.Dial(addr,
 		grpc.WithInsecure(),
 		grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
@@ -42,15 +60,26 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(res.Products, parseCatalog(), cmp.Comparer(proto.Equal)); diff != "" {
-		t.Error(diff)
+
+	expectedProducts := make(map[string]*pb.Product)
+	for _, prod := range parsedCatalog {
+		expectedProducts[prod.Id] = prod
+	}
+
+	for _, prod := range res.Products {
+		expected, found := expectedProducts[prod.Id]
+		if !found {
+			t.Errorf("Unexpected product %v", prod.Id)
+		} else if diff := cmp.Diff(prod, expected, cmp.Comparer(proto.Equal)); diff != "" {
+			t.Error(diff)
+		}
 	}
 
 	got, err := client.GetProduct(ctx, &pb.GetProductRequest{Id: "OLJCESPC7Z"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := parseCatalog()[0]; !proto.Equal(got, want) {
+	if want := expectedProducts["OLJCESPC7Z"]; !proto.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 	_, err = client.GetProduct(ctx, &pb.GetProductRequest{Id: "N/A"})
@@ -62,7 +91,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(sres.Results, []*pb.Product{parseCatalog()[0]}, cmp.Comparer(proto.Equal)); diff != "" {
+	if diff := cmp.Diff(sres.Results, []*pb.Product{expectedProducts["OLJCESPC7Z"]}, cmp.Comparer(proto.Equal)); diff != "" {
 		t.Error(diff)
 	}
 }
