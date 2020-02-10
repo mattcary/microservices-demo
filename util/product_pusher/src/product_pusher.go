@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
+	pb "github.com/mattcary/microservices-demo/src/productcatalogservice/genproto"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
@@ -52,41 +52,23 @@ func init() {
 	log.Out = os.Stdout
 }
 
-func main() {
-	catlog, err := readCatalogFile(os.Getenv(CATLOG_FILE))
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	var db *sql.DB
-	db, err = openDB()
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	defer db.Close()
-	err = writeCatalog(catlog, db)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	log.Info("Success!")
-}
-
 func readCatalogFile(filename string) (*pb.ListProductsResponse, error) {
 	catalogJSON, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("failed to open product catalog json file: %v", err)
 		return nil, err
 	}
-	var catalog *pb.ListProductsResponse
-	if err := jsonpb.Unmarshal(bytes.NewReader(catalogJSON), catalog); err != nil {
+	var catalog pb.ListProductsResponse
+	if err := jsonpb.Unmarshal(bytes.NewReader(catalogJSON), &catalog); err != nil {
 		log.Warnf("failed to parse the catalog JSON: %v", err)
 		return nil, err
 	}
 	log.Info("successfully parsed product catalog json")
-	return catalog, nil
+	return &catalog, nil
 }
 
 func writeProduct(product *pb.Product, db *sql.DB) error {
-	categoryIns, err := db.Prepare("InsertInto Categories VALUES (?, ?)")
+	categoryIns, err := db.Prepare("INSERT INTO Categories VALUES (?, ?)")
 	if err != nil {
 		log.Warn("Could not prepare Category insert")
 		return err
@@ -95,13 +77,13 @@ func writeProduct(product *pb.Product, db *sql.DB) error {
 
 	_, err = db.Exec("INSERT INTO Products VALUES (?, ?, ?, ?, ?, ?, ?)", product.Id, product.Name, product.Description, product.Picture, product.PriceUsd.CurrencyCode, product.PriceUsd.Units, product.PriceUsd.Nanos)
 	if err != nil {
-		log.Warn("Could not insert product %v", product)
+		log.Warnf("Could not insert product %v", product)
 		return err // TODO: err.wrap, structure errors rather than warning string.
 	}
 	for _, c := range product.Categories {
-		_, err = categoryIns.Exec(product.id, c)
+		_, err = categoryIns.Exec(product.Id, c)
 		if err != nil {
-			log.Warn("Could not insert product %v category %v", product.id, c)
+			log.Warnf("Could not insert product %v category %v", product.Id, c)
 			return err
 		}
 	}
@@ -112,7 +94,7 @@ func writeProduct(product *pb.Product, db *sql.DB) error {
 func writeCatalog(catalog *pb.ListProductsResponse, db *sql.DB) error {
 	count := 0
 	for _, product := range catalog.Products {
-		err := WriteProduct(product, db)
+		err := writeProduct(product, db)
 		if err != nil {
 			log.Warnf("Could not write %v", product)
 			return err
@@ -137,7 +119,7 @@ func createTables(db *sql.DB) error {
 		log.Warn("Could not create table Products")
 		// Fall through to try to create Categories.
 	}
-	_, categoryErr = db.Exec(`
+	_, categoryErr := db.Exec(`
         CREATE TABLE Categories (
             ProductID     varchar(32),
             Category      varchar(255))`)
@@ -157,14 +139,17 @@ func createTables(db *sql.DB) error {
 }
 
 func openDB() (*sql.DB, error) {
-	dbStr := fmt.Sprintf("%s:%s@%s/Catalog", os.Getenv(SQL_USER), os.GetEnv(SQL_PASSWORD), os.Getenv(SQL_HOST))
+	dbStr := fmt.Sprintf("%s:%s@%s/Catalog", os.Getenv(SQL_USER), os.Getenv(SQL_PASSWORD), os.Getenv(SQL_HOST))
 	db, err := sql.Open("mysql", dbStr)
 	if err != nil {
 		log.Warnf("Could not open %v", dbStr)
-		return err
+		return nil, err
 	}
+	return db, nil
+}
 
-	res, err := db.query(`
+func initDB(db *sql.DB) error {
+	res, err := db.Query(`
         SELECT COUNT(*) FROM information_schema.tables
         WHERE table_schema = 'Catalog' AND
               (table_name = 'Products' OR table_name = 'Categories')`)
@@ -174,7 +159,7 @@ func openDB() (*sql.DB, error) {
 	}
 	defer res.Close()
 
-	tablesOkay = false
+	tablesOkay := false
 	if res.Next() {
 		var count int
 		if err := res.Scan(&count); err != nil {
