@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package product_pusher
 
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"testing"
 
 	pb "github.com/mattcary/microservices-demo/src/productcatalogservice/genproto"
@@ -33,16 +34,20 @@ const (
 	PASSWORD = "be84fa653f7770a"
 )
 
-func connect(t *testing.T) *sql.DB {
+func openTestDB() (*sql.DB, error) {
 	dbStr := fmt.Sprintf("%s:%s@/Catalog", USER, PASSWORD)
-	db, err := sql.Open("mysql", dbStr)
+	return sql.Open("mysql", dbStr)
+}
+
+func connect(t *testing.T) *sql.DB {
+	db, err := openTestDB()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec("DROP TABLE Products"); err != nil {
+	if _, err := db.Exec("DROP TABLE IF EXISTS Products"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec("DROP TABLE Categories"); err != nil {
+	if _, err := db.Exec("DROP TABLE IF EXISTS Categories"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -72,46 +77,8 @@ func checkTables(t *testing.T, db *sql.DB) {
 	}
 }
 
-func TestInit(t *testing.T) {
-	db := connect(t)
-	defer db.Close()
-
-	// Check init from empty DB.
-	err := initDB(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-	checkTables(t, db)
-
-	// Check init from DB already created.
-	err = initDB(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-	checkTables(t, db)
-}
-
-func TestWrite(t *testing.T) {
-	db := connect(t)
-	defer db.Close()
-
-	err := initDB(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var catalog *pb.ListProductsResponse
-	catalog, err = readCatalogFile(CATALOG_FILE)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = writeCatalog(catalog, db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var res *sql.Rows
-	res, err = db.Query("SELECT ProductID from Products")
+func checkProducts(t *testing.T, db *sql.DB) {
+	res, err := db.Query("SELECT ProductID from Products")
 	ids := make(map[string]bool)
 	for res.Next() {
 		var id string
@@ -147,4 +114,73 @@ func TestWrite(t *testing.T) {
 			t.Errorf("Category %v not found", c)
 		}
 	}
+}
+
+func TestMain(m *testing.M) {
+	testStatus := m.Run()
+	// Reconnect to clean up the DB.
+	db, err := openTestDB()
+	// TODO: figure out how to report an error here
+	if err == nil {
+		defer db.Close()
+		_, _ = db.Exec("DROP TABLE Products");
+		_, _ = db.Exec("DROP TABLE Categories");
+	}
+	os.Exit(testStatus)
+}
+
+func TestInit(t *testing.T) {
+	db := connect(t)
+	defer db.Close()
+
+	// Check init from empty DB.
+	err := initDB(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkTables(t, db)
+
+	// Check init from DB already created.
+	err = initDB(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkTables(t, db)
+}
+
+func TestWrite(t *testing.T) {
+	db := connect(t)
+	defer db.Close()
+
+	err := initDB(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var catalog *pb.ListProductsResponse
+	catalog, err = ReadCatalogFile(CATALOG_FILE)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = writeCatalog(catalog, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkProducts(t, db)
+}
+
+func TestPush(t *testing.T) {
+	os.Setenv("SQL_USER", "products")
+	os.Setenv("SQL_PASSWORD", "be84fa653f7770a")
+	os.Setenv("SQL_HOST", "")
+	PushCatalog(CATALOG_FILE)
+
+	db, err := openTestDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	checkProducts(t, db)
 }

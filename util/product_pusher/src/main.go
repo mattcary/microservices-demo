@@ -12,32 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package product_pusher
 
 import (
+	"fmt"
 	"os"
-
-	"database/sql"
 )
 
 func main() {
-	catlog, err := readCatalogFile(os.Getenv(CATLOG_FILE))
+	err := PushCatalog(os.Getenv("CATALOG_FILE"))
 	if err != nil {
-		log.Fatalf("%v", err)
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
 	}
-	var db *sql.DB
-	db, err = openDB()
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	defer db.Close()
-	err = initDB(db)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	err = writeCatalog(catlog, db)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	log.Info("Success!")
+	fmt.Fprintf(os.Stdout, "Success!")
+	os.Exit(0)
 }

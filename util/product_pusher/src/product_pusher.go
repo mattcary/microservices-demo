@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package product_pusher
 
 import (
 	"bytes"
@@ -39,20 +39,29 @@ var (
 	log *logrus.Logger
 )
 
-func init() {
-	log = logrus.New()
-	log.Formatter = &logrus.JSONFormatter{
-		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyTime:  "timestamp",
-			logrus.FieldKeyLevel: "severity",
-			logrus.FieldKeyMsg:   "message",
-		},
-		TimestampFormat: time.RFC3339Nano,
+func PushCatalog(filename string) error {
+	catalog, err := ReadCatalogFile(filename);
+	if err != nil {
+		return err
 	}
-	log.Out = os.Stdout
+	var db *sql.DB
+	db, err = openDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	err = initDB(db)
+	if err != nil {
+		return err
+	}
+	err = writeCatalog(catalog, db)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func readCatalogFile(filename string) (*pb.ListProductsResponse, error) {
+func ReadCatalogFile(filename string) (*pb.ListProductsResponse, error) {
 	catalogJSON, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("failed to open product catalog json file: %v", err)
@@ -65,6 +74,19 @@ func readCatalogFile(filename string) (*pb.ListProductsResponse, error) {
 	}
 	log.Info("successfully parsed product catalog json")
 	return &catalog, nil
+}
+
+func init() {
+	log = logrus.New()
+	log.Formatter = &logrus.JSONFormatter{
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyTime:  "timestamp",
+			logrus.FieldKeyLevel: "severity",
+			logrus.FieldKeyMsg:   "message",
+		},
+		TimestampFormat: time.RFC3339Nano,
+	}
+	log.Out = os.Stdout
 }
 
 func writeProduct(product *pb.Product, db *sql.DB) error {
