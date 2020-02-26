@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package product_pusher
+package main
 
 import (
 	"fmt"
 	"os"
+
+	"github.com/mattcary/microservices-demo/src/util/product_pusher"
 )
 
 func main() {
-	err := PushCatalog(os.Getenv("CATALOG_FILE"))
+	err := product_pusher.PushCatalog(os.Getenv("CATALOG_FILE"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
