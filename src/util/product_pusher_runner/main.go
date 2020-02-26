@@ -24,9 +24,9 @@ import (
 func main() {
 	err := product_pusher.PushCatalog(os.Getenv("CATALOG_FILE"))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
+		fmt.Fprintf(os.Stderr, "Error pushing catalog: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stdout, "Success!")
+	fmt.Fprintf(os.Stdout, "Success!\n")
 	os.Exit(0)
 }

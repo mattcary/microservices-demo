@@ -89,10 +89,13 @@ func main() {
 }
 
 func openDB() error {
-	// open db
 	dbStr := fmt.Sprintf("%s:%s@%s/Catalog", os.Getenv("SQL_USER"), os.Getenv("SQL_PASSWORD"), os.Getenv("SQL_HOST"))
 	var err error
 	db, err = sql.Open("mysql", dbStr)
+	if err == nil {
+		// Necessary as Cloud SQL instances agressively close connections on their side.
+		db.SetConnMaxLifetime(1 * time.Second)
+	}
 	return err
 }
 
@@ -250,13 +253,16 @@ func (p *productCatalog) ListProducts(context.Context, *pb.Empty) (*pb.ListProdu
 		return nil, err
 	}
 	var products []*pb.Product
+	productCount := 0
 	for res.Next() {
 		prod, err := readProductResult(res)
 		if err != nil {
 			return nil, err
 		}
 		products = append(products, prod)
+		productCount += 1
 	}
+	log.Infof("Found %v products", productCount)
 
 	categories := make(map[string][]string)
 	res, err = db.Query("SELECT ProductID, Category FROM Categories")

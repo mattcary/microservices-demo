@@ -31,7 +31,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: main
-        image: gcr.io/mattcary-hipster/loadgenerator:1.0.0
+        image: gcr.io/mattcary-hack-0225/loadgenerator:1.0.0
         env:
         - name: FRONTEND_ADDR
           value: "frontend:80"

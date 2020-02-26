@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: gcr.io/mattcary-hipster/shippingservice:1.0.0
+        image: gcr.io/mattcary-hack-0225/shippingservice:1.0.0
         ports:
         - containerPort: 50051
         env:

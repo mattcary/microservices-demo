@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: server
-          image: gcr.io/mattcary-hipster/frontend:1.0.0
+          image: gcr.io/mattcary-hack-0225/frontend:1.0.0
           ports:
           - containerPort: 8080
           readinessProbe:

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,46 +20,26 @@
 #       | grep connectionName: | awk '{ print $2 }')/ productcatalogservice.yaml \
 #   | kubectl apply -f -
 #
-# This also uses the productcatalog-sql service account via workload identity to
-# connect to the Cloud SQL instance. A project role binding to cloudsql.client
-# should be made on this account in order to access the CloudSQL instance, a
-# service-account role binding to iam.workloadIdentityUser should be made to the
-# project svc.id.goog account, and a similarly named kubernetes service account
-# should be created and annotated with
-# iam.gke.io/gcp-service-account=productcatalog-sql@PROJECT.iam.gserviceaccount.com.
-#
-# The cluster must be created with workload identity enabled
-# (--identity-namespace=PROJECT.svc.id.goog). The cluster can be updated with
-# that flag, but all existing node pulls must also be updated, or deleted &
-# re-created.
-#
-# The cluster project must of enable sqladmin.googleapis.com.
+# See notes in kubernetes-manifests/productcatalogservice.yaml for the necessary
+# workload idenity setup.
 
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: productcatalogservice
+  name: productpusherrunner
 spec:
-  selector:
-    matchLabels:
-      app: productcatalogservice
   template:
-    metadata:
-      labels:
-        app: productcatalogservice
     spec:
-      terminationGracePeriodSeconds: 5
       serviceAccountName: productcatalog-sql
+      restartPolicy: Never
       containers:
-      - name: server
-        image: gcr.io/mattcary-hack-0225/productcatalogservice:1.0.3
-        ports:
-        - containerPort: 3550
+      - name: pusher
+        image: gcr.io/mattcary-hack-0225/product_pusher_runner:1.0.3
         env:
-        - name: PORT
-          value: "3550"
+        - name: CATALOG_FILE
+          value: /etc/products.json
         - name: SQL_HOST
-          value: ""
+          value: 
         - name: SQL_USER
           valueFrom:
             secretKeyRef:
@@ -70,12 +50,6 @@ spec:
             secretKeyRef:
               name: cloudsql-db-credentials
               key: password
-        readinessProbe:
-          exec:
-            command: ["/bin/grpc_health_probe", "-addr=:3550"]
-        livenessProbe:
-          exec:
-            command: ["/bin/grpc_health_probe", "-addr=:3550"]
         resources:
           requests:
             cpu: 100m
@@ -96,16 +70,3 @@ spec:
         securityContext:
           runAsUser: 2  # non-root user
           allowPrivilegeEscalation: false
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: productcatalogservice
-spec:
-  type: ClusterIP
-  selector:
-    app: productcatalogservice
-  ports:
-  - name: grpc
-    port: 3550
-    targetPort: 3550

@@ -6,11 +6,15 @@ require (
 	cloud.google.com/go v0.45.1
 	contrib.go.opencensus.io/exporter/jaeger v0.2.0
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.0
+	github.com/GoogleCloudPlatform/microservices-demo v0.1.4
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.3.3
 	github.com/google/go-cmp v0.3.1
 	github.com/google/pprof v0.0.0-20200210173600-2827a3cc57bf // indirect
+	github.com/google/uuid v1.1.1
 	github.com/googleapis/gax-go v1.0.3 // indirect
+	github.com/gorilla/mux v1.7.4
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	go.opencensus.io v0.22.3
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2

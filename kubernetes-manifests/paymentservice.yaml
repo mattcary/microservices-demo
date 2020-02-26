@@ -28,7 +28,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/mattcary-hipster/paymentservice:1.0.0
+        image: gcr.io/mattcary-hack-0225/paymentservice:1.0.0
         ports:
         - containerPort: 50051
         env:

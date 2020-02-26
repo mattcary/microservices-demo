@@ -28,7 +28,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: server
-        image: gcr.io/mattcary-hipster/currencyservice:1.0.0
+        image: gcr.io/mattcary-hack-0225/currencyservice:1.0.0
         ports:
         - name: grpc
           containerPort: 7000
