@@ -172,15 +172,19 @@ func createTables(db *sql.DB) error {
 func openDB() (*sql.DB, error) {
 	dbStr := fmt.Sprintf("%s:%s@%s/Catalog", os.Getenv(SQL_USER), os.Getenv(SQL_PASSWORD), os.Getenv(SQL_HOST))
 	db, err := sql.Open("mysql", dbStr)
+	if err != nil {
+		return nil, err
+	}
 	start := time.Now()
-	for err != nil {
-		log.Warnf("Could not open %v", dbStr)
+	for err = db.Ping(); err != nil; err = db.Ping() {
+		log.Warnf("Trying ping %v (%v)", dbStr, err)
 		if time.Now().Sub(start).Minutes() > 3 {
 			return nil, fmt.Errorf("Timed out trying to connect to %v", dbStr)
 		}
 		time.Sleep(2 * time.Second)
 		db, err = sql.Open("mysql", dbStr)
 	}
+	log.Infof("Verified db %v", dbStr)
 	return db, nil
 }
 
