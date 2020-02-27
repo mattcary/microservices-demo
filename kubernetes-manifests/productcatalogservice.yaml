@@ -33,7 +33,7 @@
 # that flag, but all existing node pulls must also be updated, or deleted &
 # re-created.
 #
-# The cluster project must of enable sqladmin.googleapis.com.
+# The cluster project must enable sqladmin.googleapis.com.
 
 apiVersion: apps/v1
 kind: Deployment
